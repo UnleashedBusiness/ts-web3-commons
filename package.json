@@ -20,6 +20,10 @@
     "@wagmi/chains": "^1.8.0",
     "@wagmi/connectors": "^3.1.2",
     "viem": "^1.12.1",
+    "web3-eth-contract": "^4.1.0",
+    "web3-eth": "^4.2.0",
+    "web3-core": "^4.2.0",
+    "web3-types": "^1.2.0",
     "bignumber.js": "^9.1.2",
     "web3": "^1.7.5",
     "rxjs": "^7.8.1"

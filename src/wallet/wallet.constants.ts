@@ -1,5 +1,5 @@
 import {avalanche, avalancheFuji, bsc, bscTestnet, goerli, mainnet, polygon, polygonMumbai} from "@wagmi/chains";
-import {blockchainIndex} from "../chains";
+import {blockchainIndex} from "../utils/chains";
 
 export const CONNECTOR_CACHE_KEY = 'connector_cache_wallet';
 export const SUPPORTED_WAGMI_CHAINS = [mainnet, polygon, polygonMumbai, bsc, bscTestnet, goerli, avalanche, avalancheFuji, {

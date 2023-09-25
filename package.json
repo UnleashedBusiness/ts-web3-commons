@@ -10,7 +10,7 @@
   },
   "types": "dist/index.d.ts",
   "author": "ShadowsCrypto",
-  "license": "BSL-1.0",
+  "license": "GPL-3.0",
   "files": [
     "/dist"
   ],

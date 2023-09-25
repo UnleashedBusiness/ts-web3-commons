@@ -8,7 +8,7 @@ import {TransactionRunningHelperService} from "../../utils/transaction-running-h
 import {BlockchainDefinition, EmptyAddress} from "../../utils/chains";
 import {Web3BatchRequest} from "web3-core";
 
-export abstract class BaseTokenAwareContract<Abi extends ContractAbi> extends BaseMultiChainContract<Abi> {
+export abstract class BaseTokenAwareContract extends BaseMultiChainContract {
   protected constructor(
       protected readonly token: Erc20TokenContract,
       walletConnection: WalletConnectionService,
@@ -32,7 +32,7 @@ export abstract class BaseTokenAwareContract<Abi extends ContractAbi> extends Ba
   protected async getViewWithDivision(
       config: BlockchainDefinition,
       contractAddress: string,
-      fetchMethod: (contract: Contract<Abi>) => any,
+      fetchMethod: (contract: any) => any,
       divisionToken: string,
       batch?: Web3BatchRequest,
       callback?: (result: BigNumber) => void

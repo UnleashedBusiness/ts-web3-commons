@@ -4,19 +4,19 @@ import {Web3BatchRequest} from "web3-core";
 import {WalletConnectionService} from "../../wallet/wallet-connection.service";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service";
 import {BlockchainDefinition, blockchainIndex, EmptyAddress} from "../../utils/chains";
-import {Contract, NonPayableMethodObject, PayableMethodObject} from "web3-eth-contract";
-import {ContractAbi, TransactionReceipt} from "web3-types";
+import {NonPayableMethodObject, PayableMethodObject} from "web3-eth-contract";
+import {TransactionReceipt} from "web3-types";
 
-export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
-    private _contractConnected: Map<string, Contract<Abi>> = new Map();
-    private _contractReadOnly: Map<number, Map<string, Contract<Abi>>> = new Map();
+export abstract class BaseMultiChainContract {
+    private _contractConnected: Map<string, any> = new Map();
+    private _contractReadOnly: Map<number, any> = new Map();
 
     protected constructor(
         protected readonly walletConnection: WalletConnectionService,
         protected readonly transactionHelper: TransactionRunningHelperService) {
     }
 
-    protected abstract getAbi(): Abi;
+    protected abstract getAbi(): any;
 
     public transferOwnership(contractAddress: string, newOwner: string): MethodRunnable {
         // @ts-ignore
@@ -40,7 +40,6 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
         callback?: (result: number) => void
     ): Promise<number | void> {
         const roleConverted = Web3.utils.sha3(role);
-        // @ts-ignore
         return this.getViewMulti(config, contractAddress, async contract => contract.methods.getRoleMemberCount(roleConverted), batch, callback);
     }
 
@@ -53,7 +52,6 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
         callback?: (result: string) => void
     ): Promise<string | void> {
         const roleConverted = Web3.utils.sha3(role);
-        // @ts-ignore
         return this.getViewMulti(config, contractAddress, async contract => contract.methods.getRoleMember(roleConverted, index), batch, callback);
     }
 
@@ -74,24 +72,22 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
         callback?: (result: boolean) => void
     ): Promise<boolean | void> {
         const roleConverted = Web3.utils.sha3(role);
-        // @ts-ignore
         return this.getViewMulti(config, contractAddress, async contract => contract.methods.hasRole(roleConverted, wallet), batch, callback);
     }
 
     protected async initMultiChainContractReadonly(config: BlockchainDefinition, address: string): Promise<void> {
         if (!this._contractReadOnly.has(config.networkId)) {
-            this._contractReadOnly.set(config.networkId, new Map<string, Contract<Abi>>());
+            this._contractReadOnly.set(config.networkId, new Map<string, any>());
         }
         if (!this._contractReadOnly.get(config.networkId)!.has(address)) {
             this._contractReadOnly.get(config.networkId)!.set(
                 address,
-                //@ts-ignore Abi stuff
                 new (this.walletConnection.getWeb3ReadOnly(config)).eth.Contract(this.getAbi(), address)
             );
         }
     }
 
-    protected async getReadonlyMultiChainContract(config: BlockchainDefinition, contractAddress: string): Promise<Contract<Abi>> {
+    protected async getReadonlyMultiChainContract(config: BlockchainDefinition, contractAddress: string): Promise<any> {
         if (!this._contractReadOnly.get(config.networkId)?.has(contractAddress)) {
             await this.initMultiChainContractReadonly(config, contractAddress);
         }
@@ -121,7 +117,7 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
     protected async getViewMulti<T>(
         config: BlockchainDefinition,
         contractAddress: string,
-        fetchMethod: (contract: Contract<Abi>) => Promise<PayableMethodObject | NonPayableMethodObject>,
+        fetchMethod: (contract: any) => Promise<PayableMethodObject | NonPayableMethodObject>,
         batch?: Web3BatchRequest,
         callback?: (result: T) => void
     ): Promise<T | void> {
@@ -141,7 +137,7 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
     }
 
 
-    protected async contractConnectedMulti(address: string): Promise<Contract<Abi>> {
+    protected async contractConnectedMulti(address: string): Promise<any> {
         await this.initForConnectedMulti(address);
         return this._contractConnected.get(address);
     }
@@ -159,7 +155,7 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
 
     protected buildMethodRunnableMulti(
         contractAddress: string,
-        fetchMethod: (contract: Contract<Abi>, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
+        fetchMethod: (contract: any, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
         validation?: () => Promise<void>,
         getValue?: () => Promise<BigNumber>,
         getGas?: () => Promise<BigNumber>
@@ -173,7 +169,7 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
 
     protected async getRunMethodDataMulti(
         contractAddress: string,
-        fetchMethod: (contract: Contract<Abi>) => Promise<PayableMethodObject | NonPayableMethodObject>
+        fetchMethod: (contract: any) => Promise<PayableMethodObject | NonPayableMethodObject>
     ): Promise<string> {
         const contract = await this.contractConnectedMulti(contractAddress);
         return (await fetchMethod(contract)).encodeABI();
@@ -181,7 +177,7 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
 
     protected async runMethodConnectedMulti(
         contractAddress: string,
-        fetchMethod: (contract: Contract<Abi>, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
+        fetchMethod: (contract: any, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
         validation?: () => Promise<void>,
         getValue?: () => Promise<BigNumber>,
         getGas?: () => Promise<BigNumber>
@@ -256,7 +252,7 @@ export abstract class BaseMultiChainContract<Abi extends ContractAbi> {
 
     protected async runMethodGasEstimateMulti(
         contractAddress: string,
-        fetchMethod: (contract: Contract<Abi>, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
+        fetchMethod: (contract: any, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
         getValue?: () => Promise<BigNumber>
     ): Promise<BigNumber> {
         const contract = await this.contractConnectedMulti(contractAddress);

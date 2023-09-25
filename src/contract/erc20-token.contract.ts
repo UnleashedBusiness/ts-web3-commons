@@ -6,7 +6,7 @@ import {TransactionRunningHelperService} from "../utils/transaction-running-help
 import {BlockchainDefinition} from "../utils/chains";
 import {Web3BatchRequest} from "web3-core";
 
-export class Erc20TokenContract extends BaseMultiChainContract<typeof Erc20Abi> {
+export class Erc20TokenContract extends BaseMultiChainContract {
     private decimalsCache: Map<number, Map<string, number>> = new Map();
 
     constructor(

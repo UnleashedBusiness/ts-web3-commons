@@ -27,6 +27,7 @@ import {
 } from "@wagmi/core";
 import {CONNECTOR_CACHE_KEY, SUPPORTED_WAGMI_CHAINS} from "./wallet.constants";
 import {publicProvider} from "@wagmi/core/dist/providers/public";
+import {EventEmitter} from "../utils/event-emitter";
 
 export class WalletConnectionService {
     private _wagmiClient?: Config<PublicClient> = undefined;
@@ -39,6 +40,8 @@ export class WalletConnectionService {
 
     private _accounts: any = [];
     private _balanceCache: BigNumber = new BigNumber(0);
+
+    public readonly walletConnectedEvent: EventEmitter<boolean> = new EventEmitter<boolean>();
 
     public get web3(): Web3 {
         return this._web3!;
@@ -179,6 +182,8 @@ export class WalletConnectionService {
 
                 localStorage.setItem(CONNECTOR_CACHE_KEY, this._connector!.id);
 
+                this.walletConnectedEvent.emit(true);
+
                 resolve();
             } catch (e) {
                 console.log(e);
@@ -196,6 +201,8 @@ export class WalletConnectionService {
         this._accounts = [];
 
         localStorage.removeItem(CONNECTOR_CACHE_KEY);
+
+        this.walletConnectedEvent.emit(false);
     }
 
     walletConnected(): boolean {

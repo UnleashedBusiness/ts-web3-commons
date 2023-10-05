@@ -18,7 +18,7 @@
     "@metamask/eth-sig-util": "^7.0.0",
     "@wagmi/core": "^1.4.2",
     "@wagmi/chains": "^1.8.0",
-    "@wagmi/connectors": "^3.1.2",
+    "wagmi": "^1.4.3",
     "viem": "^1.12.1",
     "web3-eth-contract": "^4.1.0",
     "web3-eth": "^4.2.0",

@@ -265,7 +265,9 @@ export abstract class BaseMultiChainContract {
 
         return new BigNumber(Number(await method.estimateGas({
             from: this.walletConnection.accounts[0],
-            gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId ? gasPrice : undefined,
+            gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
+              ? gasPrice.toString() :
+              undefined,
             value: value.toString()
         })));
     }

@@ -25,8 +25,8 @@ import {
     InjectedConnector, watchAccount,
     watchNetwork
 } from "@wagmi/core";
+import { publicProvider } from 'wagmi/providers/public'
 import {CONNECTOR_CACHE_KEY, SUPPORTED_WAGMI_CHAINS} from "./wallet.constants";
-import {publicProvider} from "@wagmi/core/dist/providers/public";
 import {EventEmitter} from "../utils/event-emitter";
 
 export class WalletConnectionService {
@@ -71,7 +71,7 @@ export class WalletConnectionService {
 
     public getWeb3ReadOnly(chain: BlockchainDefinition): Web3 {
         if (!this._web3ReadOnlyClients.has(chain.networkId))
-            this._web3ReadOnlyClients.set(chain.networkId, new Web3(new Web3.providers.HttpProvider(chain.networkRPC[0], {})));
+            this._web3ReadOnlyClients.set(chain.networkId, new Web3(new Web3.providers.HttpProvider(chain.networkRPC[0])));
         return this._web3ReadOnlyClients.get(chain.networkId);
     }
 

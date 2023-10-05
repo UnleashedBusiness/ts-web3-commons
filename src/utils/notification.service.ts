@@ -1,7 +1,7 @@
-export class NotificationService<IconType> {
-  public notifications: PushNotification<IconType>[] = [];
+export class NotificationService {
+  public notifications: PushNotification<any>[] = [];
 
-  public show(n: PushNotification<IconType>, timeout: number = 5000): void {
+  public show(n: PushNotification<any>, timeout: number = 5000): void {
     this.notifications.push(n);
     setTimeout(() => {
       this.notifications = this.notifications.filter(x => x !== n);

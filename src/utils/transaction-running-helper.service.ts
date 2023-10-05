@@ -7,7 +7,7 @@ export class TransactionRunningHelperService {
   public readTransaction  = false;
   public lastWasProposal  = false;
 
-  constructor(private service: NotificationService<any>) {
+  constructor(private service: NotificationService) {
   }
 
   public start(): void {

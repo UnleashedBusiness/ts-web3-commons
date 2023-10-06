@@ -196,7 +196,7 @@ export abstract class BaseMultiChainContract {
                 const value = getValue ? await getValue() : 0;
 
                 const method = await fetchMethod(contract, this.walletConnection.accounts[0]);
-                const gasPrice = (await this.walletConnection.web3.eth.getGasPrice());
+                //const gasPrice = (await this.walletConnection.web3.eth.getGasPrice());
 
                 const estimateGas = getGas !== undefined
                     ? await getGas()
@@ -208,9 +208,9 @@ export abstract class BaseMultiChainContract {
                     data: method.encodeABI(),
                     gas: estimateGas.multipliedBy(1.15).toString(),
                     value: value.toString(),
-                    gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
-                        ? gasPrice
-                        : undefined,
+                    //gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
+                    //    ? gasPrice
+                    //    : undefined,
                 };
 
                 this.walletConnection.web3.eth.sendTransaction(tx)
@@ -261,13 +261,13 @@ export abstract class BaseMultiChainContract {
 
         const value = getValue ? await getValue() : new BigNumber(0);
         const method = await fetchMethod(contract, this.walletConnection.accounts[0]);
-        const gasPrice = (await this.walletConnection.web3.eth.getGasPrice());
+        //const gasPrice = (await this.walletConnection.web3.eth.getGasPrice());
 
         return new BigNumber(Number(await method.estimateGas({
             from: this.walletConnection.accounts[0],
-            gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
-              ? gasPrice.toString() :
-              undefined,
+           // gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
+           //   ? gasPrice.toString() :
+           //   undefined,
             value: value.toString()
         })));
     }

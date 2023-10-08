@@ -3,9 +3,8 @@ import Web3 from "web3";
 import {Web3BatchRequest} from "web3-core";
 import {WalletConnectionService} from "../../wallet/wallet-connection.service";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service";
-import {BlockchainDefinition, blockchainIndex, EmptyAddress} from "../../utils/chains";
+import {BlockchainDefinition, EmptyAddress} from "../../utils/chains";
 import {NonPayableMethodObject, PayableMethodObject} from "web3-eth-contract";
-import {TransactionReceipt} from "web3-types";
 
 export abstract class BaseMultiChainContract {
     private _contractConnected: Map<string, any> = new Map();
@@ -203,34 +202,31 @@ export abstract class BaseMultiChainContract {
                     : await this.runMethodGasEstimateMulti(contractAddress, fetchMethod, getValue);
 
                 const tx = {
-                    from: this.walletConnection.accounts[0],
+                    account: this.walletConnection.accounts[0],
                     to: contractAddress,
                     data: method.encodeABI(),
-                    gas: estimateGas.multipliedBy(1.15).toString(),
+                    gas: estimateGas.multipliedBy(1.15).decimalPlaces(0).toString(),
                     value: value.toString(),
                     //gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
                     //    ? gasPrice
                     //    : undefined,
                 };
 
-                this.walletConnection.web3.eth.sendTransaction(tx)
-                    .on('receipt', (result: TransactionReceipt) => {
-                        if (result.status) {
-                            this.transactionHelper.success(result.transactionHash.toString());
-                            this.walletConnection.reloadBalanceCache();
-                            resolve();
-                        } else {
-                            const reason = JSON.stringify(result.logs);
-                            this.transactionHelper.failed(reason);
-                            this.walletConnection.reloadBalanceCache();
-                            reject(reason);
-                        }
-                    })
-                    .on('error', (reason: Error) => {
-                        this.transactionHelper.failed(reason.message);
-                        this.walletConnection.reloadBalanceCache();
-                        reject(reason);
-                    });
+                // @ts-ignore
+                const transactionHash = await this.walletConnection.walletClient.sendTransaction(tx);
+                const result = await this.walletConnection
+                    .getReadOnlyClient(this.walletConnection.blockchain)
+                    .waitForTransactionReceipt({hash: transactionHash});
+                if (result.status === 'success') {
+                    this.transactionHelper.success(result.transactionHash.toString());
+                    await this.walletConnection.reloadBalanceCache();
+                    resolve();
+                } else {
+                    const reason = JSON.stringify(result.logs);
+                    this.transactionHelper.failed(reason);
+                    await this.walletConnection.reloadBalanceCache();
+                    reject(reason);
+                }
             } catch (e) {
                 console.log(e);
                 let errorMessage = (e as any).message
@@ -265,9 +261,9 @@ export abstract class BaseMultiChainContract {
 
         return new BigNumber(Number(await method.estimateGas({
             from: this.walletConnection.accounts[0],
-           // gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
-           //   ? gasPrice.toString() :
-           //   undefined,
+            // gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
+            //   ? gasPrice.toString() :
+            //   undefined,
             value: value.toString()
         })));
     }

@@ -163,9 +163,15 @@ export class WalletConnectionService {
                 const selectedChain = connection.chain.id;
                 this._connectedBlockchainDefinition = targetChainDefinition
                     ?? allowedChains.filter(x => x.networkId === selectedChain)[0];
+                const wagmiChainFiltered = SUPPORTED_WAGMI_CHAINS
+                    .filter(x => x.id === selectedChain);
+
+
                 this._walletClient = createWalletClient({
                     // @ts-ignore
                     transport: custom(connection.provider),
+                    // @ts-ignore
+                    chain: wagmiChainFiltered
                 })
 
                 watchNetwork(_ => {

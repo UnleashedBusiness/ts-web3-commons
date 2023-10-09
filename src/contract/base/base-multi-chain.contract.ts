@@ -1,11 +1,12 @@
 import BigNumber from "bignumber.js";
-import Web3 from "web3";
+import Web3, {JsonRpcOptionalRequest} from "web3";
 import {Web3BatchRequest} from "web3-core";
 import {WalletConnectionService} from "../../wallet/wallet-connection.service";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service";
 import {BlockchainDefinition, EmptyAddress} from "../../utils/chains";
 import {NonPayableMethodObject, PayableMethodObject} from "web3-eth-contract";
 import {SUPPORTED_WAGMI_CHAINS} from "../../wallet/wallet.constants";
+import {v4 as uuidv4} from 'uuid';
 
 export abstract class BaseMultiChainContract {
     private _contractConnected: Map<string, any> = new Map();
@@ -106,8 +107,19 @@ export abstract class BaseMultiChainContract {
         const method = contract.methods[propertyName]()
 
         if (typeof batch !== "undefined" && typeof callback !== "undefined") {
-            //@ts-ignore request is there it just does not see it in types :/
-            batch.add(method.call.request())
+            const jsonRpcCall: JsonRpcOptionalRequest = {
+                jsonrpc: "2.0",
+                id: uuidv4(),
+                method: "eth_call",
+                params: [{
+                    from: this.walletConnection.walletConnected()
+                        ? this.walletConnection.accounts[0]
+                        : EmptyAddress,
+                    to: contractAddress,
+                    data: method.encodeABI()
+                }]
+            };
+            batch.add(jsonRpcCall)
                 .then(response => callback(response as T))
                 .catch(errorContext => console.log(errorContext))
         } else
@@ -124,12 +136,23 @@ export abstract class BaseMultiChainContract {
         const contract = await this.getReadonlyMultiChainContract(config, contractAddress);
         const method = await fetchMethod(contract);
 
-        if (typeof batch !== "undefined" && typeof callback !== "undefined")
-            //@ts-ignore request is there it just does not see it in types :/
-            batch.add(method.call.request())
+        if (typeof batch !== "undefined" && typeof callback !== "undefined") {
+            const jsonRpcCall: JsonRpcOptionalRequest = {
+                jsonrpc: "2.0",
+                id: uuidv4(),
+                method: "eth_call",
+                params: [{
+                    from: this.walletConnection.walletConnected()
+                        ? this.walletConnection.accounts[0]
+                        : EmptyAddress,
+                    to: contractAddress,
+                    data: method.encodeABI()
+                }]
+            };
+            batch.add(jsonRpcCall)
                 .then(response => callback(response as T))
                 .catch(errorContext => console.log(errorContext));
-        else if (typeof callback !== "undefined")
+        } else if (typeof callback !== "undefined")
             callback(await method.call());
         else {
             return method.call();

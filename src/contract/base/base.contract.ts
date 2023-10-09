@@ -1,17 +1,14 @@
 import {NonPayableMethodObject, PayableMethodObject} from "web3-eth-contract"
 import {BaseMultiChainContract} from "./base-multi-chain.contract";
 import BigNumber from "bignumber.js";
-import {WalletConnectionService} from "../../wallet/wallet-connection.service";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service";
 import {BlockchainDefinition} from "../../utils/chains";
 import {Web3BatchRequest} from "web3-core";
+import { ReadOnlyWeb3Connection } from "../../connection/interface/read-only-web3-connection";
 
 export abstract class BaseContract extends BaseMultiChainContract {
-  protected constructor(
-      walletConnection: WalletConnectionService,
-      transactionHelper: TransactionRunningHelperService
-  ) {
-    super(walletConnection, transactionHelper);
+  protected constructor(web3Connection: ReadOnlyWeb3Connection, transactionHelper: TransactionRunningHelperService) {
+    super(web3Connection, transactionHelper);
   }
 
   protected abstract getAddress(config: BlockchainDefinition): Promise<string>;

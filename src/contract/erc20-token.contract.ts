@@ -1,19 +1,18 @@
 import {BaseMultiChainContract, MethodRunnable} from "./base/base-multi-chain.contract";
 import BigNumber from "bignumber.js";
-import {WalletConnectionService} from "../wallet/wallet-connection.service";
 import {Erc20Abi} from "../abi/erc20.abi";
 import {TransactionRunningHelperService} from "../utils/transaction-running-helper.service";
 import {BlockchainDefinition} from "../utils/chains";
 import {Web3BatchRequest} from "web3-core";
+import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
+import { config, from } from "rxjs";
 
 export class Erc20TokenContract extends BaseMultiChainContract {
     private decimalsCache: Map<number, Map<string, number>> = new Map();
 
-    constructor(
-        walletConnection: WalletConnectionService,
-        transactionHelper: TransactionRunningHelperService
-    ) {
-        super(walletConnection, transactionHelper);
+
+    constructor(web3Connection: ReadOnlyWeb3Connection, transactionHelper: TransactionRunningHelperService) {
+        super(web3Connection, transactionHelper);
     }
 
     protected getAbi(): any {
@@ -107,7 +106,7 @@ export class Erc20TokenContract extends BaseMultiChainContract {
         return this.buildMethodRunnableMulti(
             contractAddr,
             // @ts-ignore
-            async (contract, connectedAddress) => contract.methods.approve(from, amountWei.toString()),
+            async (contract, _) => contract.methods.approve(from, amountWei.toString()),
             undefined,
             undefined,
             async () => new BigNumber(100000))

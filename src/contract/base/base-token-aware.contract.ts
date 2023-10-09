@@ -1,20 +1,18 @@
 import BigNumber from "bignumber.js";
-import {Contract} from "web3-eth-contract";
 import {BaseMultiChainContract} from "./base-multi-chain.contract";
 import {Erc20TokenContract} from "../erc20-token.contract";
-import {ContractAbi} from "web3-types";
-import {WalletConnectionService} from "../../wallet/wallet-connection.service";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service";
 import {BlockchainDefinition, EmptyAddress} from "../../utils/chains";
 import {Web3BatchRequest} from "web3-core";
+import { ReadOnlyWeb3Connection } from "../../connection/interface/read-only-web3-connection";
 
 export abstract class BaseTokenAwareContract extends BaseMultiChainContract {
   protected constructor(
       protected readonly token: Erc20TokenContract,
-      walletConnection: WalletConnectionService,
+      web3Connection: ReadOnlyWeb3Connection,
       transactionHelper: TransactionRunningHelperService
   ) {
-    super(walletConnection, transactionHelper);
+    super(web3Connection, transactionHelper);
   }
 
   protected async tokenDivision(config: BlockchainDefinition, token: string): Promise<number> {

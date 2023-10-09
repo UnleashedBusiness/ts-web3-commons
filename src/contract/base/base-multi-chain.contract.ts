@@ -5,6 +5,7 @@ import {WalletConnectionService} from "../../wallet/wallet-connection.service";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service";
 import {BlockchainDefinition, EmptyAddress} from "../../utils/chains";
 import {NonPayableMethodObject, PayableMethodObject} from "web3-eth-contract";
+import {SUPPORTED_WAGMI_CHAINS} from "../../wallet/wallet.constants";
 
 export abstract class BaseMultiChainContract {
     private _contractConnected: Map<string, any> = new Map();
@@ -202,6 +203,9 @@ export abstract class BaseMultiChainContract {
                     : await this.runMethodGasEstimateMulti(contractAddress, fetchMethod, getValue);
 
                 const tx = {
+                    chain: SUPPORTED_WAGMI_CHAINS
+                        .filter(x => x.id === this.walletConnection.blockchain.networkId)
+                        .pop(),
                     account: this.walletConnection.accounts[0],
                     to: contractAddress,
                     data: method.encodeABI(),

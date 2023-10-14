@@ -18,7 +18,6 @@
     "uuid": "^9.0.1"
   },
   "peerDependencies": {
-    "@metamask/eth-sig-util": "^7.0.0",
     "bignumber.js": "^9.1.2",
     "rxjs": "^7.8.1",
     "viem": "^1.12.1",

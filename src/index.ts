@@ -10,6 +10,7 @@ export * from "./contract/base/base-token-aware.contract";
 export * from "./utils/chains";
 export * from "./utils/notification.service";
 export * from "./utils/transaction-running-helper.service";
+export * from "./utils/event-emitter";
 export * from "./connection/read-only-web3-connection.service";
 export * from "./connection/interface/read-only-web3-connection";
 export * from "./connection/interface/wallet-web3-connection";

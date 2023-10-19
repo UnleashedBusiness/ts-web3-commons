@@ -208,6 +208,7 @@ export abstract class BaseMultiChainContract {
             to: contractAddress,
             data: method.encodeABI(),
           },
+          "latest"
         ],
       };
       batch

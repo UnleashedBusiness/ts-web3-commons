@@ -8,7 +8,7 @@ import { MethodRunnable } from "./base/base-multi-chain.contract";
 import { Web3BatchRequest } from "web3-core";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 
-export class UniswapRouterContract extends BaseTokenAwareContract {
+export class UniswapRouterContract extends BaseTokenAwareContract<any> {
   constructor(
     token: Erc20TokenContract,
     web3Connection: ReadOnlyWeb3Connection,
@@ -17,7 +17,7 @@ export class UniswapRouterContract extends BaseTokenAwareContract {
     super(token, web3Connection, transactionHelper);
   }
 
-  protected getAbi(): any {
+  protected getAbi(): typeof UniswapRouterAbi {
     return UniswapRouterAbi;
   }
 

@@ -1,12 +1,18 @@
 import {NonPayableMethodObject, PayableMethodObject} from "web3-eth-contract"
-import {BaseMultiChainContract} from "./base-multi-chain.contract";
+import {
+  BaseMultiChainContract,
+  FunctionalAbiExecutable,
+  FunctionalAbiMethodDefinition
+} from "./base-multi-chain.contract";
 import BigNumber from "bignumber.js";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service";
 import {BlockchainDefinition} from "../../utils/chains";
 import {Web3BatchRequest} from "web3-core";
 import { ReadOnlyWeb3Connection } from "../../connection/interface/read-only-web3-connection";
+import { ContractAbi } from "web3";
+import { AbiFunctionFragment } from "web3/lib/types";
 
-export abstract class BaseContract extends BaseMultiChainContract {
+export abstract class BaseContract<FunctionalAbi extends {[key: string]: AbiFunctionFragment}> extends BaseMultiChainContract<FunctionalAbi> {
   protected constructor(web3Connection: ReadOnlyWeb3Connection, transactionHelper: TransactionRunningHelperService) {
     super(web3Connection, transactionHelper);
   }
@@ -36,16 +42,16 @@ export abstract class BaseContract extends BaseMultiChainContract {
 
   protected async getProperty<T>(
       config: BlockchainDefinition,
-      name: string,
+      fetchProperty: ((abi: FunctionalAbiExecutable<FunctionalAbi>) => Promise<FunctionalAbiMethodDefinition>) | string,
       batch?: Web3BatchRequest,
       callback?: (result: T) => void
   ): Promise<T | void> {
-    return this.getPropertyMulti(config, await this.getAddress(config), name, batch, callback);
+    return this.getPropertyMulti(config, await this.getAddress(config), fetchProperty, batch, callback);
   }
 
   protected async getView<T>(
       config: BlockchainDefinition,
-      fetchMethod: (contract: any) => Promise<PayableMethodObject | NonPayableMethodObject>,
+      fetchMethod: (abi: FunctionalAbiExecutable<FunctionalAbi>) => Promise<FunctionalAbiMethodDefinition>,
       batch?: Web3BatchRequest,
       callback?: (result: T) => void
   ): Promise<T | void> {

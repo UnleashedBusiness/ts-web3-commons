@@ -5,7 +5,7 @@ import { BlockchainDefinition } from "../utils/chains";
 import { Web3BatchRequest } from "web3-core";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 
-export class UniswapFactoryContract extends BaseMultiChainContract {
+export class UniswapFactoryContract extends BaseMultiChainContract<any> {
   constructor(
     web3Connection: ReadOnlyWeb3Connection,
     transactionHelper: TransactionRunningHelperService,
@@ -13,7 +13,7 @@ export class UniswapFactoryContract extends BaseMultiChainContract {
     super(web3Connection, transactionHelper);
   }
 
-  protected getAbi(): any {
+  protected getAbi(): typeof UniswapFactoryAbi {
     return UniswapFactoryAbi;
   }
 

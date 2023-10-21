@@ -6,12 +6,12 @@ import { Web3BatchRequest } from "web3-core";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 import BigNumber from "bignumber.js";
 
-export class UniswapPairContract extends BaseMultiChainContract {
+export class UniswapPairContract extends BaseMultiChainContract<any> {
   constructor(web3Connection: ReadOnlyWeb3Connection, transactionHelper: TransactionRunningHelperService) {
     super(web3Connection, transactionHelper);
   }
 
-  protected getAbi(): any {
+  protected getAbi(): typeof UniswapPairAbi {
     return UniswapPairAbi;
   }
 

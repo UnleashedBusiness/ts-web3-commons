@@ -16,3 +16,7 @@ export * from "./connection/interface/read-only-web3-connection";
 export * from "./connection/interface/wallet-web3-connection";
 export * from "./connection/web3-connection.const";
 export * from "./contract/error/wallet-connection-required.error";
+
+export * from './storage/nft-storage.client'
+export * from './storage/web3-storage-client.interface'
+export * from './utils/url-utils'

@@ -6,7 +6,7 @@ import { BlockchainDefinition } from '../utils/chains';
 import { Web3BatchRequest } from 'web3-core';
 import { ReadOnlyWeb3Connection } from '../connection/interface/read-only-web3-connection';
 
-export class Erc20TokenContract extends BaseMultiChainContract<Erc20AbiFunctional> {
+export class Erc20TokenContract<FunctionalAbi extends Erc20AbiFunctional = Erc20AbiFunctional> extends BaseMultiChainContract<FunctionalAbi> {
   private decimalsCache: Map<number, Map<string, number>> = new Map();
 
   constructor(web3Connection: ReadOnlyWeb3Connection, transactionHelper: TransactionRunningHelperService) {

@@ -3,7 +3,7 @@ import { IEERC721Abi, IEERC721AbiFunctional } from "../abi/ierc721.abi";
 import {TransactionRunningHelperService} from "../utils/transaction-running-helper.service";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 
-export class Erc721Contract extends BaseMultiChainContract<IEERC721AbiFunctional> {
+export class Erc721Contract<FunctionalAbi extends IEERC721AbiFunctional = IEERC721AbiFunctional> extends BaseMultiChainContract<FunctionalAbi> {
 
     constructor({ web3Connection, transactionHelper }: {
         web3Connection: ReadOnlyWeb3Connection,

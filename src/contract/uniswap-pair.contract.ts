@@ -1,12 +1,12 @@
 import { BaseMultiChainContract } from "./base/base-multi-chain.contract";
 import { TransactionRunningHelperService } from "../utils/transaction-running-helper.service";
-import { UniswapPairAbi } from "../abi/uniswap-pair.abi";
+import { UniswapPairAbi, UniswapPairAbiFunctional } from "../abi/uniswap-pair.abi";
 import { BlockchainDefinition } from "../utils/chains";
 import { Web3BatchRequest } from "web3-core";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 import BigNumber from "bignumber.js";
 
-export class UniswapPairContract extends BaseMultiChainContract<any> {
+export class UniswapPairContract extends BaseMultiChainContract<UniswapPairAbiFunctional> {
   constructor(web3Connection: ReadOnlyWeb3Connection, transactionHelper: TransactionRunningHelperService) {
     super(web3Connection, transactionHelper);
   }

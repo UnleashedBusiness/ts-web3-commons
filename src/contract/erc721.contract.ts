@@ -1,9 +1,9 @@
 import {BaseMultiChainContract, MethodRunnable} from "./base/base-multi-chain.contract";
-import {IEERC721Abi} from "../abi/ierc721.abi";
+import { IEERC721Abi, IEERC721AbiFunctional } from "../abi/ierc721.abi";
 import {TransactionRunningHelperService} from "../utils/transaction-running-helper.service";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 
-export class Erc721Contract extends BaseMultiChainContract<any> {
+export class Erc721Contract extends BaseMultiChainContract<IEERC721AbiFunctional> {
 
     constructor({ web3Connection, transactionHelper }: {
         web3Connection: ReadOnlyWeb3Connection,

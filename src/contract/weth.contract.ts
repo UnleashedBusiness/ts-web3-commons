@@ -1,11 +1,11 @@
 import { BaseTokenAwareContract } from "./base/base-token-aware.contract";
 import { Erc20TokenContract } from "./erc20-token.contract";
 import { TransactionRunningHelperService } from "../utils/transaction-running-helper.service";
-import { WETHAbi } from "../abi/weth.abi";
+import { WETHAbi, WETHAbiFunctional } from "../abi/weth.abi";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 import BigNumber from "bignumber.js";
 
-export class WethContract extends BaseTokenAwareContract<any> {
+export class WethContract extends BaseTokenAwareContract<WETHAbiFunctional> {
   constructor(
     token: Erc20TokenContract,
     web3Connection: ReadOnlyWeb3Connection,

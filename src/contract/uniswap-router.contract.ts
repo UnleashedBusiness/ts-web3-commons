@@ -1,14 +1,14 @@
 import { BaseTokenAwareContract } from "./base/base-token-aware.contract";
 import { Erc20TokenContract } from "./erc20-token.contract";
 import { TransactionRunningHelperService } from "../utils/transaction-running-helper.service";
-import { UniswapRouterAbi } from "../abi/uniswap-router.abi";
+import { UniswapRouterAbi, UniswapRouterAbiFunctional } from "../abi/uniswap-router.abi";
 import { BlockchainDefinition } from "../utils/chains";
 import { BigNumber } from "bignumber.js";
 import { MethodRunnable } from "./base/base-multi-chain.contract";
 import { Web3BatchRequest } from "web3-core";
 import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
 
-export class UniswapRouterContract extends BaseTokenAwareContract<any> {
+export class UniswapRouterContract extends BaseTokenAwareContract<UniswapRouterAbiFunctional> {
   constructor(
     token: Erc20TokenContract,
     web3Connection: ReadOnlyWeb3Connection,

@@ -1,5 +1,9 @@
 import BigNumber from 'bignumber.js';
-import { BaseMultiChainContract } from './base-multi-chain.contract';
+import {
+  BaseMultiChainContract,
+  FunctionalAbiExecutable,
+  FunctionalAbiMethodDefinition
+} from "./base-multi-chain.contract";
 import { Erc20TokenContract } from '../erc20-token.contract';
 import { TransactionRunningHelperService } from '../../utils/transaction-running-helper.service';
 import { BlockchainDefinition, EmptyAddress } from '../../utils/chains';
@@ -38,7 +42,9 @@ export abstract class BaseTokenAwareContract<
   protected async getViewWithDivision(
     config: BlockchainDefinition,
     contractAddress: string,
-    fetchMethod: (contract: any) => any,
+    fetchMethod:
+      | ((abi: FunctionalAbiExecutable<FunctionalAbi>) => Promise<FunctionalAbiMethodDefinition>)
+      | ((abi: FunctionalAbiExecutable<FunctionalAbi>) => FunctionalAbiMethodDefinition),
     divisionToken: string,
     batch?: Web3BatchRequest,
     callback?: (result: BigNumber) => void,

@@ -183,7 +183,8 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     callback?: (result: T) => void,
   ): Promise<T | void> {
     const contract = await this.getReadonlyMultiChainContract(config, contractAddress);
-    const call = await fetchMethod(contract);
+    const definitions = this.getContractFunctionAbiDefinition(contract);
+    const call = await fetchMethod(definitions);
     const method = contract.methods[call.definition.name](...call.args);
 
     if (typeof batch !== 'undefined' && typeof callback !== 'undefined') {

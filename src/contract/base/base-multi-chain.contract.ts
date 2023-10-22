@@ -147,7 +147,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     const contract = await this.getReadonlyMultiChainContract(config, contractAddress);
     const definitions = this.getContractFunctionAbiDefinition(contract);
     const definition =
-      typeof fetchProperty === 'string' ? definitions[fetchProperty]() : await fetchProperty(definitions);
+      typeof fetchProperty === 'string' ? definitions.methods[fetchProperty]() : await fetchProperty(definitions);
     const method = contract.methods[definition.definition.name]();
 
     if (typeof batch !== 'undefined' && typeof callback !== 'undefined') {

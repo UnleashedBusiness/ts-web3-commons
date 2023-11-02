@@ -19,6 +19,7 @@ export type FunctionalAbiExecutableFun = (...args: any[]) => FunctionalAbiMethod
 export type FunctionalAbiExecutable<T extends FunctionalAbiDefinition> = {
   methods: { [key in keyof T]: FunctionalAbiExecutableFun };
 };
+export type NumericResult = bigint | number | string | BigNumber;
 
 export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbiDefinition> {
   private _contractConnected: Map<string, any> = new Map();
@@ -306,15 +307,21 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         }
       } catch (e) {
         console.log(e);
-        let errorMessage = (e as any).message
-          .replace("[ethjs-query] while formatting outputs from RPC '", '')
-          .replace('"', '"')
-          .replace('Internal JSON-RPC error.', '');
-        errorMessage = errorMessage.substring(0, errorMessage.length - 1);
-        try {
-          const decoded = JSON.parse(errorMessage);
-          errorMessage = decoded.value.data.message;
-        } catch (ex) {}
+
+        let errorMessage: string;
+        if (typeof e.data.message !== "undefined") {
+          errorMessage = e.data.message;
+        } else if (typeof e.message !== 'undefined') {
+          errorMessage = (e as any).message
+            .replace("[ethjs-query] while formatting outputs from RPC '", '')
+            .replace('"', '"')
+            .replace('Internal JSON-RPC error.', '');
+          errorMessage = errorMessage.substring(0, errorMessage.length - 1);
+          try {
+            const decoded = JSON.parse(errorMessage);
+            errorMessage = decoded.value.data.message;
+          } catch (ex) {}
+        } else {}
         this.transactionHelper.failed(errorMessage);
         await this.walletConnection.reloadBalanceCache();
         reject(errorMessage);
@@ -347,7 +354,11 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     );
   }
 
-  protected wrap(num: number | string): BigNumber {
+  protected wrap(num: NumericResult): BigNumber {
+    if (typeof num === "bigint") {
+      return new BigNumber(num.toString());
+    }
+
     return new BigNumber(num);
   }
 

@@ -309,7 +309,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         console.log(e);
 
         let errorMessage: string;
-        if (typeof e.data.message !== "undefined") {
+        if (typeof e.data?.message !== "undefined") {
           errorMessage = e.data.message;
         } else if (typeof e.message !== 'undefined') {
           errorMessage = (e as any).message
@@ -321,7 +321,9 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
             const decoded = JSON.parse(errorMessage);
             errorMessage = decoded.value.data.message;
           } catch (ex) {}
-        } else {}
+        } else {
+          errorMessage = e;
+        }
         this.transactionHelper.failed(errorMessage);
         await this.walletConnection.reloadBalanceCache();
         reject(errorMessage);

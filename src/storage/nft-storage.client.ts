@@ -10,9 +10,8 @@ export default class NftStorageClient implements Web3StorageClientInterface {
     private readonly authToken: string,
   ) {}
 
-  public async uploadFile(filename: string, content: string): Promise<string> {
+  public async uploadFile(filename: string, content: Buffer): Promise<string> {
     const url = UrlUtils.getAbsoluteUrl(this.baseUrl, NftStorageClient.UPLOAD_URI);
-
     return axios
       .post(url, content, {
         headers: {

@@ -1,3 +1,3 @@
 export interface Web3StorageClientInterface {
-  uploadFile(filename: string, content: string): Promise<string>;
+  uploadFile(filename: string, content: Buffer): Promise<string>;
 }

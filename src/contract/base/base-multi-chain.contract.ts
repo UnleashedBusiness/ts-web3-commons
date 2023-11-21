@@ -274,13 +274,24 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
 
         // @ts-ignore
         const transactionHash = await this.walletConnection.walletClient.sendTransaction(tx);
-        const result = await this.walletConnection
-          .getReadOnlyClient(this.walletConnection.blockchain)
-          .waitForTransactionReceipt({
-            hash: transactionHash,
-            timeout: this.toolkit.generalConfig.executionReceiptTimeout,
-            confirmations: this.toolkit.generalConfig.executionConfirmation,
-          });
+
+        let blocks = 0;
+        let result: any;
+        while (blocks < this.toolkit.generalConfig.blockMintingTolerance) {
+          try {
+            result = await this.walletConnection
+              .getReadOnlyClient(this.walletConnection.blockchain)
+              .waitForTransactionReceipt({
+                hash: transactionHash,
+                timeout: this.toolkit.generalConfig.executionReceiptTimeout,
+                confirmations: this.toolkit.generalConfig.executionConfirmation,
+              });
+          } catch (e) {
+            blocks += 1;
+            if (blocks > this.toolkit.generalConfig.blockMintingTolerance) throw e;
+          }
+        }
+
         if (result.status === 'success') {
           this.toolkit.transactionHelper.success(result.transactionHash.toString());
           await this.walletConnection.reloadBalanceCache();

@@ -276,8 +276,8 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         const transactionHash = await this.walletConnection.walletClient.sendTransaction(tx);
 
         let blocks = 0;
-        let result: any;
-        while (blocks <= this.toolkit.generalConfig.blockMintingTolerance) {
+        let result: any = undefined;
+        while (blocks <= this.toolkit.generalConfig.blockMintingTolerance && result === undefined) {
           try {
             result = await this.walletConnection
               .getReadOnlyClient(this.walletConnection.blockchain)

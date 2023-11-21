@@ -3,8 +3,8 @@ import BigNumber from 'bignumber.js';
 import { Erc20Abi, Erc20AbiFunctional } from '../abi/erc20.abi';
 import { BlockchainDefinition } from '../utils/chains';
 import { Web3BatchRequest } from 'web3-core';
-import ContractToolkitService from './utils/contract-toolkit.service';
-import { AbiMethodFetchMethod, NumericResult } from "./utils/contract.types";
+import { ContractToolkitService } from './utils/contract-toolkit.service';
+import { AbiMethodFetchMethod, NumericResult } from './utils/contract.types';
 
 type TokenContractDecimalsCacheIndex = { [contractAddress: string]: number };
 type NetworkTokensContractDecimalsCacheIndex = { [networkId: number]: TokenContractDecimalsCacheIndex };

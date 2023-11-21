@@ -1,12 +1,10 @@
 import { NonPayableMethodObject, PayableMethodObject } from 'web3-eth-contract';
-import {
-  BaseMultiChainContract,
-} from './base-multi-chain.contract';
+import { BaseMultiChainContract } from './base-multi-chain.contract';
 import BigNumber from 'bignumber.js';
 import { BlockchainDefinition } from '../../utils/chains';
 import { Web3BatchRequest } from 'web3-core';
-import ContractToolkitService from '../utils/contract-toolkit.service';
-import { AbiMethodFetchMethod, AbiPropertyFetchMethod, FunctionalAbiDefinition } from "../utils/contract.types";
+import { ContractToolkitService } from '../utils/contract-toolkit.service';
+import { AbiMethodFetchMethod, AbiPropertyFetchMethod, FunctionalAbiDefinition } from '../utils/contract.types';
 
 export abstract class BaseContract<
   FunctionalAbi extends FunctionalAbiDefinition,

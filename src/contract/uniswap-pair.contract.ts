@@ -3,7 +3,7 @@ import { UniswapPairAbi, UniswapPairAbiFunctional } from "../abi/uniswap-pair.ab
 import { BlockchainDefinition } from "../utils/chains";
 import { Web3BatchRequest } from "web3-core";
 import BigNumber from "bignumber.js";
-import ContractToolkitService from "./utils/contract-toolkit.service";
+import { ContractToolkitService } from "./utils/contract-toolkit.service";
 
 export class UniswapPairContract extends BaseMultiChainContract<UniswapPairAbiFunctional> {
   constructor(toolkit: ContractToolkitService) {

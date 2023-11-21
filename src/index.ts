@@ -17,6 +17,10 @@ export * from "./connection/interface/wallet-web3-connection";
 export * from "./connection/web3-connection.const";
 export * from "./contract/error/wallet-connection-required.error";
 
+export * from "./contract/utils/contract-toolkit.service";
+export * from "./contract/utils/contract.types";
+export * from "./contract/utils/contract-general.config";
+
 export * from './storage/nft-storage.client'
 export * from './storage/web3-storage-client.interface'
 export * from './utils/url-utils'

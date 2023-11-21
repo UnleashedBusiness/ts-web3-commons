@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { WalletWeb3Connection } from '../../connection/interface/wallet-web3-connection';
 import WalletConnectionRequiredError from '../error/wallet-connection-required.error';
 import { SUPPORTED_WAGMI_CHAINS } from '../../connection/web3-connection.const';
-import ContractToolkitService from '../utils/contract-toolkit.service';
+import { ContractToolkitService } from '../utils/contract-toolkit.service';
 import {
   AbiMethodFetchMethod,
   AbiPropertyFetchMethod,

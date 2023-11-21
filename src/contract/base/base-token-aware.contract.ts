@@ -1,12 +1,10 @@
 import BigNumber from 'bignumber.js';
-import {
-  BaseMultiChainContract,
-} from './base-multi-chain.contract';
+import { BaseMultiChainContract } from './base-multi-chain.contract';
 import { Erc20TokenContract } from '../erc20-token.contract';
 import { BlockchainDefinition, DefaultEVMNativeTokenDecimals, EmptyAddress } from '../../utils/chains';
 import { Web3BatchRequest } from 'web3-core';
-import ContractToolkitService from '../utils/contract-toolkit.service';
-import { AbiMethodFetchMethod, FunctionalAbiDefinition, NumericResult } from "../utils/contract.types";
+import { ContractToolkitService } from '../utils/contract-toolkit.service';
+import { AbiMethodFetchMethod, FunctionalAbiDefinition, NumericResult } from '../utils/contract.types';
 
 export abstract class BaseTokenAwareContract<
   FunctionalAbi extends FunctionalAbiDefinition,

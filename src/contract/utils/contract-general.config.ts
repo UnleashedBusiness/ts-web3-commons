@@ -1,4 +1,4 @@
-export default class ContractGeneralConfig {
+export class ContractGeneralConfig {
   constructor(
     public readonly executionReceiptTimeout: number = 10_000,
     public readonly executionConfirmation: number = 1,

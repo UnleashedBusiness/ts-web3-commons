@@ -5,7 +5,7 @@ import { BlockchainDefinition } from "../utils/chains";
 import { BigNumber } from "bignumber.js";
 import { MethodRunnable } from "./base/base-multi-chain.contract";
 import { Web3BatchRequest } from "web3-core";
-import ContractToolkitService from "./utils/contract-toolkit.service";
+import { ContractToolkitService } from "./utils/contract-toolkit.service";
 
 export class UniswapRouterContract extends BaseTokenAwareContract<UniswapRouterAbiFunctional> {
   constructor(token: Erc20TokenContract, toolkit: ContractToolkitService) {

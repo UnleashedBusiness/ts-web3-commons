@@ -277,7 +277,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
 
         let blocks = 0;
         let result: any;
-        while (blocks < this.toolkit.generalConfig.blockMintingTolerance) {
+        while (blocks <= this.toolkit.generalConfig.blockMintingTolerance) {
           try {
             result = await this.walletConnection
               .getReadOnlyClient(this.walletConnection.blockchain)

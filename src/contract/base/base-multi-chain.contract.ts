@@ -1,44 +1,36 @@
 import BigNumber from 'bignumber.js';
 import Web3, { AbiFunctionFragment, Contract, JsonRpcOptionalRequest } from 'web3';
 import { Web3BatchRequest } from 'web3-core';
-import { TransactionRunningHelperService } from '../../utils/transaction-running-helper.service';
 import { BlockchainDefinition, EmptyAddress } from '../../utils/chains';
 import { decodeMethodReturn, NonPayableMethodObject, PayableMethodObject } from 'web3-eth-contract';
 import { v4 as uuidv4 } from 'uuid';
-import { ReadOnlyWeb3Connection } from '../../connection/interface/read-only-web3-connection';
 import { WalletWeb3Connection } from '../../connection/interface/wallet-web3-connection';
 import WalletConnectionRequiredError from '../error/wallet-connection-required.error';
 import { SUPPORTED_WAGMI_CHAINS } from '../../connection/web3-connection.const';
-
-export type FunctionalAbiDefinition = { [key: string]: AbiFunctionFragment };
-export type FunctionalAbiMethodDefinition = {
-  args: any[];
-  definition: AbiFunctionFragment;
-};
-export type FunctionalAbiExecutableFun = (...args: any[]) => FunctionalAbiMethodDefinition;
-export type FunctionalAbiExecutable<T extends FunctionalAbiDefinition> = {
-  methods: { [key in keyof T]: FunctionalAbiExecutableFun };
-};
-export type NumericResult = bigint | number | string | BigNumber;
+import ContractToolkitService from '../utils/contract-toolkit.service';
+import {
+  AbiMethodFetchMethod,
+  AbiPropertyFetchMethod,
+  FunctionalAbiDefinition,
+  FunctionalAbiExecutable,
+  NumericResult,
+} from '../utils/contract.types';
 
 export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbiDefinition> {
   private _contractConnected: Map<string, any> = new Map();
   private _contractReadOnly: Map<number, any> = new Map();
 
   protected get walletConnection(): WalletWeb3Connection {
-    if (!('connectWallet' in this.web3Connection)) {
+    if (!('connectWallet' in this.toolkit.web3Connection)) {
       throw new WalletConnectionRequiredError(
         'Requested operation requires wallet connection and you are using a read only connection!',
       );
     }
 
-    return this.web3Connection as WalletWeb3Connection;
+    return this.toolkit.web3Connection as WalletWeb3Connection;
   }
 
-  protected constructor(
-    protected readonly web3Connection: ReadOnlyWeb3Connection,
-    protected readonly transactionHelper: TransactionRunningHelperService,
-  ) {}
+  protected constructor(protected readonly toolkit: ContractToolkitService) {}
 
   protected abstract getAbi(): any;
 
@@ -122,7 +114,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     if (!this._contractReadOnly.get(config.networkId)!.has(address)) {
       this._contractReadOnly
         .get(config.networkId)!
-        .set(address, new (this.web3Connection.getWeb3ReadOnly(config).eth.Contract)(this.getAbi(), address));
+        .set(address, new (this.toolkit.web3Connection.getWeb3ReadOnly(config).eth.Contract)(this.getAbi(), address));
     }
   }
 
@@ -138,10 +130,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
   protected async getPropertyMulti<T>(
     config: BlockchainDefinition,
     contractAddress: string,
-    fetchProperty:
-      | ((abi: FunctionalAbiExecutable<FunctionalAbi>) => Promise<FunctionalAbiMethodDefinition>)
-      | ((abi: FunctionalAbiExecutable<FunctionalAbi>) => FunctionalAbiMethodDefinition)
-      | string,
+    fetchProperty: AbiPropertyFetchMethod<FunctionalAbi>,
     batch?: Web3BatchRequest,
     callback?: (result: T) => void,
   ): Promise<T | void> {
@@ -177,9 +166,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
   protected async getViewMulti<T>(
     config: BlockchainDefinition,
     contractAddress: string,
-    fetchMethod:
-      | ((abi: FunctionalAbiExecutable<FunctionalAbi>) => Promise<FunctionalAbiMethodDefinition>)
-      | ((abi: FunctionalAbiExecutable<FunctionalAbi>) => FunctionalAbiMethodDefinition),
+    fetchMethod: AbiMethodFetchMethod<FunctionalAbi>,
     batch?: Web3BatchRequest,
     callback?: (result: T) => void,
   ): Promise<T | void> {
@@ -265,13 +252,11 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
 
     return new Promise(async (resolve, reject) => {
       try {
-        this.transactionHelper.start();
+        this.toolkit.transactionHelper.start();
         if (validation) await validation();
 
         const value = getValue ? await getValue() : 0;
-
         const method = await fetchMethod(contract, this.walletConnection.accounts[0]);
-        //const gasPrice = (await this.walletConnection.web3.eth.getGasPrice());
 
         const estimateGas =
           getGas !== undefined
@@ -283,25 +268,26 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
           account: this.walletConnection.accounts[0],
           to: contractAddress,
           data: method.encodeABI(),
-          gas: estimateGas.multipliedBy(1.15).decimalPlaces(0).toString(),
+          gas: estimateGas.multipliedBy(this.toolkit.generalConfig.estimateGasMultiplier).decimalPlaces(0).toString(),
           value: value.toString(),
-          //gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
-          //    ? gasPrice
-          //    : undefined,
         };
 
         // @ts-ignore
         const transactionHash = await this.walletConnection.walletClient.sendTransaction(tx);
         const result = await this.walletConnection
           .getReadOnlyClient(this.walletConnection.blockchain)
-          .waitForTransactionReceipt({ hash: transactionHash });
+          .waitForTransactionReceipt({
+            hash: transactionHash,
+            timeout: this.toolkit.generalConfig.executionReceiptTimeout,
+            confirmations: this.toolkit.generalConfig.executionConfirmation,
+          });
         if (result.status === 'success') {
-          this.transactionHelper.success(result.transactionHash.toString());
+          this.toolkit.transactionHelper.success(result.transactionHash.toString());
           await this.walletConnection.reloadBalanceCache();
           resolve();
         } else {
           const reason = JSON.stringify(result.logs);
-          this.transactionHelper.failed(reason);
+          this.toolkit.transactionHelper.failed(reason);
           await this.walletConnection.reloadBalanceCache();
           reject(reason);
         }
@@ -309,7 +295,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         console.log(e);
 
         let errorMessage: string;
-        if (typeof e.data?.message !== "undefined") {
+        if (typeof e.data?.message !== 'undefined') {
           errorMessage = e.data.message;
         } else if (typeof e.message !== 'undefined') {
           errorMessage = (e as any).message
@@ -324,7 +310,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         } else {
           errorMessage = e;
         }
-        this.transactionHelper.failed(errorMessage);
+        this.toolkit.transactionHelper.failed(errorMessage);
         await this.walletConnection.reloadBalanceCache();
         reject(errorMessage);
       }
@@ -341,15 +327,11 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
 
     const value = getValue ? await getValue() : new BigNumber(0);
     const method = await fetchMethod(contract, this.walletConnection.accounts[0]);
-    //const gasPrice = (await this.walletConnection.web3.eth.getGasPrice());
 
     return new BigNumber(
       Number(
         await method.estimateGas({
           from: this.walletConnection.accounts[0],
-          // gasPrice: this.walletConnection.blockchain.networkId === blockchainIndex.MATIC.networkId
-          //   ? gasPrice.toString() :
-          //   undefined,
           value: value.toString(),
         }),
       ),
@@ -357,7 +339,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
   }
 
   protected wrap(num: NumericResult): BigNumber {
-    if (typeof num === "bigint") {
+    if (typeof num === 'bigint') {
       return new BigNumber(num.toString());
     }
 

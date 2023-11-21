@@ -1,16 +1,12 @@
 import { BaseMultiChainContract } from "./base/base-multi-chain.contract";
-import { TransactionRunningHelperService } from "../utils/transaction-running-helper.service";
 import { UniswapFactoryAbi, UniswapFactoryAbiFunctional } from "../abi/uniswap-factory.abi";
 import { BlockchainDefinition } from "../utils/chains";
 import { Web3BatchRequest } from "web3-core";
-import { ReadOnlyWeb3Connection } from "../connection/interface/read-only-web3-connection";
+import ContractToolkitService from "./utils/contract-toolkit.service";
 
 export class UniswapFactoryContract extends BaseMultiChainContract<UniswapFactoryAbiFunctional> {
-  constructor(
-    web3Connection: ReadOnlyWeb3Connection,
-    transactionHelper: TransactionRunningHelperService,
-  ) {
-    super(web3Connection, transactionHelper);
+  constructor(toolkit: ContractToolkitService) {
+    super(toolkit);
   }
 
   protected getAbi(): typeof UniswapFactoryAbi {

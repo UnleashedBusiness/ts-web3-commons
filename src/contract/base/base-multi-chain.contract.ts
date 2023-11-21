@@ -289,6 +289,12 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
           } catch (e) {
             blocks += 1;
             if (blocks > this.toolkit.generalConfig.blockMintingTolerance) throw e;
+
+            // Poor mans sleep... Fix with proper promise someday
+            if (this.toolkit.generalConfig.blockMintingToleranceIntervalMilliseconds > 0)
+              await new Promise((resolve1) =>
+                setTimeout(resolve1, this.toolkit.generalConfig.blockMintingToleranceIntervalMilliseconds),
+              );
           }
         }
 

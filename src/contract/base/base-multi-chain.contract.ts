@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import Web3, { AbiFunctionFragment, Contract, JsonRpcOptionalRequest } from 'web3';
+import Web3, { Contract, JsonRpcOptionalRequest, MatchPrimitiveType } from 'web3';
 import { Web3BatchRequest } from 'web3-core';
 import { BlockchainDefinition, EmptyAddress } from '../../utils/chains';
 import { decodeMethodReturn, NonPayableMethodObject, PayableMethodObject } from 'web3-eth-contract';
@@ -13,6 +13,8 @@ import {
   AbiPropertyFetchMethod,
   FunctionalAbiDefinition,
   FunctionalAbiExecutable,
+  FunctionalAbiMethods,
+  FunctionalAbiViews,
   NumericResult,
 } from '../utils/contract.types';
 
@@ -34,6 +36,51 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
 
   protected abstract getAbi(): any;
 
+  public get views(): FunctionalAbiViews<FunctionalAbi> {
+    const properties: any = {};
+    for (const abiElement of this.getAbi()) {
+      if (abiElement.type !== 'function' || abiElement.stateMutability !== 'view') continue;
+      properties[abiElement.name] = (
+        config: BlockchainDefinition,
+        contractAddress: string,
+        args: any,
+        batch?: Web3BatchRequest,
+        callback?: (result: any) => void,
+      ) =>
+        this.getViewMulti(
+          config,
+          contractAddress,
+          (abi) => abi.methods[abiElement.name](...Object.values(args)),
+          batch,
+          callback,
+        );
+    }
+    return properties as any;
+  }
+
+  public get methods(): FunctionalAbiMethods<FunctionalAbi> {
+    const methods: any = {};
+
+    for (const abiElement of this.getAbi()) {
+      if (abiElement.type !== 'function' || abiElement.stateMutability === 'view') continue;
+      methods[abiElement.name] = (
+        contractAddress: string,
+        args: any,
+        validation?: () => Promise<void>,
+        getValue?: () => Promise<BigNumber>,
+        getGas?: () => Promise<BigNumber>,
+      ) =>
+        this.buildMethodRunnableMulti(
+          contractAddress,
+          (abi) => abi.methods[abiElement.name](...Object.values(args)),
+          validation,
+          getValue,
+          getGas,
+        );
+    }
+    return methods as any;
+  }
+
   public transferOwnership(contractAddress: string, newOwner: string): MethodRunnable {
     // @ts-ignore
     return this.buildMethodRunnableMulti(contractAddress, async (contract) =>
@@ -47,7 +94,13 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     batch?: Web3BatchRequest,
     callback?: (result: string) => void,
   ) {
-    return this.getViewMulti(config, contractAddress, async (contract) => contract.methods.owner(), batch, callback);
+    return this.getPropertyMulti(
+      config,
+      contractAddress,
+      async (contract) => contract.methods.owner(),
+      batch,
+      callback,
+    );
   }
 
   public async getRoleUserCount(
@@ -126,7 +179,9 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     return this._contractReadOnly.get(config.networkId)!.get(contractAddress);
   }
 
-  //${AbiFragment['name']} AbiFragment extends AbiFunctionFragment ? `asd` : never
+  /**
+   * @deprecated Use .getViewMulti() or .views()
+   */
   protected async getPropertyMulti<T>(
     config: BlockchainDefinition,
     contractAddress: string,
@@ -134,34 +189,11 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     batch?: Web3BatchRequest,
     callback?: (result: T) => void,
   ): Promise<T | void> {
-    const contract = await this.getReadonlyMultiChainContract(config, contractAddress);
-    const definitions = this.getContractFunctionAbiDefinition(contract);
-    const definition =
-      typeof fetchProperty === 'string' ? definitions.methods[fetchProperty]() : await fetchProperty(definitions);
-    const method = contract.methods[definition.definition.name]();
-
-    if (typeof batch !== 'undefined' && typeof callback !== 'undefined') {
-      const jsonRpcCall: JsonRpcOptionalRequest = {
-        jsonrpc: '2.0',
-        id: uuidv4(),
-        method: 'eth_call',
-        params: [
-          {
-            to: contractAddress,
-            data: method.encodeABI(),
-          },
-          'latest',
-        ],
-      };
-      batch
-        .add<string>(jsonRpcCall)
-        .then((response) => {
-          const transformed = decodeMethodReturn(definition.definition, response);
-          callback(transformed as T);
-        })
-        .catch((errorContext) => console.log(errorContext));
-    } else return method.call();
+    const fetchView =
+      typeof fetchProperty === 'string' ? async (contract: any) => contract.methods[fetchProperty] : fetchProperty;
+    return this.getViewMulti(config, contractAddress, fetchView, batch, callback);
   }
+
 
   protected async getViewMulti<T>(
     config: BlockchainDefinition,
@@ -192,12 +224,22 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         .add<string>(jsonRpcCall)
         .then((response) => {
           const transformed = decodeMethodReturn(call.definition, response);
-          callback(transformed as T);
+          const isNumeric =
+            (transformed as any) instanceof BigNumber ||
+            ['bigint', 'number'].filter((x) => x === typeof transformed).length > 0;
+          callback(isNumeric ? (this.wrap(transformed as NumericResult) as T) : (transformed as T));
         })
         .catch((errorContext) => console.log(errorContext));
-    } else if (typeof callback !== 'undefined') callback(await method.call());
-    else {
-      return method.call();
+    }
+    const result = await method.call();
+    const isNumeric =
+      (result as any) instanceof BigNumber ||
+      ['bigint', 'number'].filter((x) => x === typeof result).length > 0;
+    const transformed = isNumeric ? (this.wrap(result as NumericResult) as T) : (result as T);
+    if (typeof callback !== 'undefined') {
+      callback(transformed);
+    } else {
+      return transformed;
     }
   }
 

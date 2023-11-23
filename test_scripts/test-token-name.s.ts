@@ -1,5 +1,7 @@
 import {
   blockchainIndex,
+  ContractGeneralConfig,
+  ContractToolkitService, EmptyAddress,
   Erc20TokenContract,
   NotificationService,
   ReadOnlyWeb3ConnectionService,
@@ -8,12 +10,18 @@ import {
 
 const web3Connection = new ReadOnlyWeb3ConnectionService();
 const transactionHelper = new TransactionRunningHelperService(new NotificationService());
-const contract = new Erc20TokenContract(web3Connection, transactionHelper);
+const toolkit = new ContractToolkitService(web3Connection, transactionHelper, {} as ContractGeneralConfig);
+const contract = new Erc20TokenContract(toolkit);
 const config = blockchainIndex.MUMBAI_TESTCHAIN;
 
 const batch = new (web3Connection.getWeb3ReadOnly(config).BatchRequest)();
 
-contract.name(config, "0x9c3c9283d3e44854697cd22d3faa240cfb032889").then(value => console.log(value));
+contract.views.name(config, '0x9c3c9283d3e44854697cd22d3faa240cfb032889', {}).then((value) => console.log(value));
 
-contract.name(config, "0x9c3c9283d3e44854697cd22d3faa240cfb032889", batch, (result) => console.log(result))
-  .then(r => batch.execute());
+contract.views.name(config, '0x9c3c9283d3e44854697cd22d3faa240cfb032889', {}, batch, (result) => console.log(result));
+
+contract.views.balanceOf(config, '0x9c3c9283d3e44854697cd22d3faa240cfb032889', {account: EmptyAddress}).then((value) => {
+  console.log(value)
+});
+
+batch.execute({ timeout: 30_000 });

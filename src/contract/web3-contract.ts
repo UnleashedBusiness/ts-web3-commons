@@ -1,24 +1,25 @@
 import BigNumber from 'bignumber.js';
-import Web3, { Contract, JsonRpcOptionalRequest, MatchPrimitiveType } from 'web3';
+import { Contract, JsonRpcOptionalRequest } from 'web3';
 import { Web3BatchRequest } from 'web3-core';
-import { BlockchainDefinition, EmptyAddress } from '../../utils/chains';
+import { BlockchainDefinition, EmptyAddress } from '../utils/chains';
 import { decodeMethodReturn, NonPayableMethodObject, PayableMethodObject } from 'web3-eth-contract';
 import { v4 as uuidv4 } from 'uuid';
-import { WalletWeb3Connection } from '../../connection/interface/wallet-web3-connection';
-import WalletConnectionRequiredError from '../error/wallet-connection-required.error';
-import { SUPPORTED_WAGMI_CHAINS } from '../../connection/web3-connection.const';
-import { ContractToolkitService } from '../utils/contract-toolkit.service';
+import { WalletWeb3Connection } from '../connection/interface/wallet-web3-connection';
+import WalletConnectionRequiredError from './error/wallet-connection-required.error';
+import { SUPPORTED_WAGMI_CHAINS } from '../connection/web3-connection.const';
+import { ContractToolkitService } from './utils/contract-toolkit.service';
 import {
   AbiMethodFetchMethod,
-  AbiPropertyFetchMethod,
   FunctionalAbiDefinition,
   FunctionalAbiExecutable,
+  FunctionalAbiInstanceViews,
+  FunctionalAbiMethodReturnType,
   FunctionalAbiMethods,
   FunctionalAbiViews,
   NumericResult,
-} from '../utils/contract.types';
+} from './utils/contract.types';
 
-export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbiDefinition> {
+export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
   private _contractConnected: Map<string, any> = new Map();
   private _contractReadOnly: Map<number, any> = new Map();
 
@@ -32,13 +33,14 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     return this.toolkit.web3Connection as WalletWeb3Connection;
   }
 
-  protected constructor(protected readonly toolkit: ContractToolkitService) {}
-
-  protected abstract getAbi(): any;
+  public constructor(
+    protected readonly toolkit: ContractToolkitService,
+    protected readonly abi: any,
+  ) {}
 
   public get views(): FunctionalAbiViews<FunctionalAbi> {
     const properties: any = {};
-    for (const abiElement of this.getAbi()) {
+    for (const abiElement of this.abi) {
       if (abiElement.type !== 'function' || abiElement.stateMutability !== 'view') continue;
       properties[abiElement.name] = (
         config: BlockchainDefinition,
@@ -50,7 +52,10 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         this.getViewMulti(
           config,
           contractAddress,
-          (abi) => abi.methods[abiElement.name](...Object.values(args)),
+          (abi) =>
+            abi.methods[abiElement.name](
+              ...Object.values(args).map((x) => (x instanceof BigNumber ? x.toString() : x)),
+            ),
           batch,
           callback,
         );
@@ -61,7 +66,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
   public get methods(): FunctionalAbiMethods<FunctionalAbi> {
     const methods: any = {};
 
-    for (const abiElement of this.getAbi()) {
+    for (const abiElement of this.abi) {
       if (abiElement.type !== 'function' || abiElement.stateMutability === 'view') continue;
       methods[abiElement.name] = (
         contractAddress: string,
@@ -72,7 +77,10 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
       ) =>
         this.buildMethodRunnableMulti(
           contractAddress,
-          (abi) => abi.methods[abiElement.name](...Object.values(args)),
+          (abi) =>
+            abi.methods[abiElement.name](
+              ...Object.values(args).map((x) => (x instanceof BigNumber ? x.toString() : x)),
+            ),
           validation,
           getValue,
           getGas,
@@ -81,83 +89,19 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     return methods as any;
   }
 
-  public transferOwnership(contractAddress: string, newOwner: string): MethodRunnable {
-    // @ts-ignore
-    return this.buildMethodRunnableMulti(contractAddress, async (contract) =>
-      contract.methods.transferOwnership(newOwner),
-    );
-  }
-
-  public async owner(
+  public readOnlyInstance(
     config: BlockchainDefinition,
     contractAddress: string,
-    batch?: Web3BatchRequest,
-    callback?: (result: string) => void,
-  ) {
-    return this.getPropertyMulti(
-      config,
-      contractAddress,
-      async (contract) => contract.methods.owner(),
-      batch,
-      callback,
-    );
-  }
-
-  public async getRoleUserCount(
-    config: BlockchainDefinition,
-    contractAddress: string,
-    role: string,
-    batch?: Web3BatchRequest,
-    callback?: (result: number) => void,
-  ): Promise<number | void> {
-    const roleConverted = Web3.utils.sha3(role);
-    return this.getViewMulti(
-      config,
-      contractAddress,
-      async (contract) => contract.methods.getRoleMemberCount(roleConverted),
-      batch,
-      callback,
-    );
-  }
-
-  public async getRoleMemberAtPosition(
-    config: BlockchainDefinition,
-    contractAddress: string,
-    role: string,
-    index: number,
-    batch?: Web3BatchRequest,
-    callback?: (result: string) => void,
-  ): Promise<string | void> {
-    const roleConverted = Web3.utils.sha3(role);
-    return this.getViewMulti(
-      config,
-      contractAddress,
-      async (contract) => contract.methods.getRoleMember(roleConverted, index),
-      batch,
-      callback,
-    );
-  }
-
-  public isLocalManagerMulti(config: BlockchainDefinition, contractAddress: string, wallet: string): Promise<boolean> {
-    return this.hasRole(config, contractAddress, 'LOCAL_MANAGER_ROLE', wallet) as Promise<boolean>;
-  }
-
-  public async hasRole(
-    config: BlockchainDefinition,
-    contractAddress: string,
-    role: string,
-    wallet: string,
-    batch?: Web3BatchRequest,
-    callback?: (result: boolean) => void,
-  ): Promise<boolean | void> {
-    const roleConverted = Web3.utils.sha3(role);
-    return this.getViewMulti(
-      config,
-      contractAddress,
-      async (abi) => abi.methods.hasRole(roleConverted, wallet),
-      batch,
-      callback,
-    );
+  ): FunctionalAbiInstanceViews<FunctionalAbi> {
+    const viewsConverted: any = {};
+    for (const viewName of Object.keys(this.views)) {
+      viewsConverted[viewName] = (
+        args: any,
+        batch?: Web3BatchRequest,
+        callback?: (result: any) => void,
+      ) => this.views[viewName](config, contractAddress, args, batch, callback);
+    }
+    return viewsConverted;
   }
 
   protected async initMultiChainContractReadonly(config: BlockchainDefinition, address: string): Promise<void> {
@@ -167,7 +111,7 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     if (!this._contractReadOnly.get(config.networkId)!.has(address)) {
       this._contractReadOnly
         .get(config.networkId)!
-        .set(address, new (this.toolkit.web3Connection.getWeb3ReadOnly(config).eth.Contract)(this.getAbi(), address));
+        .set(address, new (this.toolkit.web3Connection.getWeb3ReadOnly(config).eth.Contract)(this.abi, address));
     }
   }
 
@@ -179,28 +123,27 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
     return this._contractReadOnly.get(config.networkId)!.get(contractAddress);
   }
 
-  /**
-   * @deprecated Use .getViewMulti() or .views()
-   */
-  protected async getPropertyMulti<T>(
-    config: BlockchainDefinition,
-    contractAddress: string,
-    fetchProperty: AbiPropertyFetchMethod<FunctionalAbi>,
-    batch?: Web3BatchRequest,
-    callback?: (result: T) => void,
-  ): Promise<T | void> {
-    const fetchView =
-      typeof fetchProperty === 'string' ? async (contract: any) => contract.methods[fetchProperty] : fetchProperty;
-    return this.getViewMulti(config, contractAddress, fetchView, batch, callback);
+  protected async contractConnectedMulti(address: string): Promise<any> {
+    await this.initForConnectedMulti(address);
+    return this._contractConnected.get(address);
   }
 
+  protected async initForConnectedMulti(address: string) {
+    if (!this.walletConnection.walletConnected()) {
+      this._contractConnected.delete(address);
+      return;
+    } else if (!this._contractConnected.has(address)) {
+      // @ts-ignore It is the same but tsc does not see it :/
+      this._contractConnected.set(address, new this.walletConnection.web3.eth.Contract(this.getAbi(), address));
+    }
+  }
 
-  protected async getViewMulti<T>(
+  protected async getViewMulti<T extends FunctionalAbiMethodReturnType>(
     config: BlockchainDefinition,
     contractAddress: string,
     fetchMethod: AbiMethodFetchMethod<FunctionalAbi>,
     batch?: Web3BatchRequest,
-    callback?: (result: T) => void,
+    callback?: (result: T) => void
   ): Promise<T | void> {
     const contract = await this.getReadonlyMultiChainContract(config, contractAddress);
     const definitions = this.getContractFunctionAbiDefinition(contract);
@@ -224,37 +167,17 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         .add<string>(jsonRpcCall)
         .then((response) => {
           const transformed = decodeMethodReturn(call.definition, response);
-          const isNumeric =
-            (transformed as any) instanceof BigNumber ||
-            ['bigint', 'number'].filter((x) => x === typeof transformed).length > 0;
-          callback(isNumeric ? (this.wrap(transformed as NumericResult) as T) : (transformed as T));
+          callback(transformed as T);
         })
         .catch((errorContext) => console.log(errorContext));
     }
     const result = await method.call();
-    const isNumeric =
-      (result as any) instanceof BigNumber ||
-      ['bigint', 'number'].filter((x) => x === typeof result).length > 0;
-    const transformed = isNumeric ? (this.wrap(result as NumericResult) as T) : (result as T);
-    if (typeof callback !== 'undefined') {
-      callback(transformed);
-    } else {
+    const transformed = result as T;
+
+    if (typeof callback === 'undefined') {
       return transformed;
-    }
-  }
-
-  protected async contractConnectedMulti(address: string): Promise<any> {
-    await this.initForConnectedMulti(address);
-    return this._contractConnected.get(address);
-  }
-
-  protected async initForConnectedMulti(address: string) {
-    if (!this.walletConnection.walletConnected()) {
-      this._contractConnected.delete(address);
-      return;
-    } else if (!this._contractConnected.has(address)) {
-      // @ts-ignore It is the same but tsc does not see it :/
-      this._contractConnected.set(address, new this.walletConnection.web3.eth.Contract(this.getAbi(), address));
+    } else {
+      callback(transformed);
     }
   }
 
@@ -340,12 +263,12 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
           }
         }
 
-        if (result.status === 'success') {
-          this.toolkit.transactionHelper.success(result.transactionHash.toString());
+        if (result?.status === 'success') {
+          this.toolkit.transactionHelper.success(result!.transactionHash.toString());
           await this.walletConnection.reloadBalanceCache();
           resolve();
         } else {
-          const reason = JSON.stringify(result.logs);
+          const reason = JSON.stringify(result?.logs);
           this.toolkit.transactionHelper.failed(reason);
           await this.walletConnection.reloadBalanceCache();
           reject(reason);
@@ -395,14 +318,6 @@ export abstract class BaseMultiChainContract<FunctionalAbi extends FunctionalAbi
         }),
       ),
     );
-  }
-
-  protected wrap(num: NumericResult): BigNumber {
-    if (typeof num === 'bigint') {
-      return new BigNumber(num.toString());
-    }
-
-    return new BigNumber(num);
   }
 
   private getContractFunctionAbiDefinition(contract: Contract<any>): FunctionalAbiExecutable<FunctionalAbi> {

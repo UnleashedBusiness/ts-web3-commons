@@ -16,12 +16,16 @@ import {
   FunctionalAbiMethodReturnType,
   FunctionalAbiMethods,
   FunctionalAbiViews,
-  NumericResult,
 } from './utils/contract.types';
 
 export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
   private _contractConnected: Map<string, any> = new Map();
   private _contractReadOnly: Map<number, any> = new Map();
+
+  private _abiFunctional: FunctionalAbi;
+  private _abiFunctionalExecutable: FunctionalAbiExecutable<FunctionalAbi>;
+  private _views: FunctionalAbiViews<FunctionalAbi>;
+  private _methods: FunctionalAbiMethods<FunctionalAbi>;
 
   protected get walletConnection(): WalletWeb3Connection {
     if (!('connectWallet' in this.toolkit.web3Connection)) {
@@ -36,57 +40,64 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
   public constructor(
     protected readonly toolkit: ContractToolkitService,
     protected readonly abi: any,
-  ) {}
+  ) {
+    const localAbiFunctional: any = {};
+    const localViews: any = {};
+    const localMethods: any = {};
+
+    for (const abiElement of this.abi) {
+      if (abiElement.type !== 'function') continue;
+      localAbiFunctional[abiElement.name as string] = abiElement;
+
+      if (abiElement.stateMutability !== 'view') {
+        localMethods[abiElement.name] = (
+          contractAddress: string,
+          args: any,
+          validation?: () => Promise<void>,
+          getValue?: () => Promise<BigNumber>,
+          getGas?: () => Promise<BigNumber>,
+        ) =>
+          this.buildMethodRunnableMulti(
+            contractAddress,
+            (abi) =>
+              abi.methods[abiElement.name](
+                ...Object.values(args).map((x) => (x instanceof BigNumber ? x.toString() : x)),
+              ),
+            validation,
+            getValue,
+            getGas,
+          );
+      } else {
+        localViews[abiElement.name] = (
+          config: BlockchainDefinition,
+          contractAddress: string,
+          args: any,
+          batch?: Web3BatchRequest,
+        ) =>
+          this.callView(
+            config,
+            contractAddress,
+            (abi) =>
+              abi.methods[abiElement.name](
+                ...Object.values(args).map((x) => (x instanceof BigNumber ? x.toString() : x)),
+              ),
+            batch,
+          );
+      }
+    }
+
+    this._abiFunctional = localAbiFunctional;
+    this._abiFunctionalExecutable = this.getContractFunctionAbiDefinition();
+    this._views = localViews;
+    this._methods = localMethods;
+  }
 
   public get views(): FunctionalAbiViews<FunctionalAbi> {
-    const properties: any = {};
-    for (const abiElement of this.abi) {
-      if (abiElement.type !== 'function' || abiElement.stateMutability !== 'view') continue;
-      properties[abiElement.name] = (
-        config: BlockchainDefinition,
-        contractAddress: string,
-        args: any,
-        batch?: Web3BatchRequest,
-        callback?: (result: any) => void,
-      ) =>
-        this.getViewMulti(
-          config,
-          contractAddress,
-          (abi) =>
-            abi.methods[abiElement.name](
-              ...Object.values(args).map((x) => (x instanceof BigNumber ? x.toString() : x)),
-            ),
-          batch,
-          callback,
-        );
-    }
-    return properties as any;
+    return this._views;
   }
 
   public get methods(): FunctionalAbiMethods<FunctionalAbi> {
-    const methods: any = {};
-
-    for (const abiElement of this.abi) {
-      if (abiElement.type !== 'function' || abiElement.stateMutability === 'view') continue;
-      methods[abiElement.name] = (
-        contractAddress: string,
-        args: any,
-        validation?: () => Promise<void>,
-        getValue?: () => Promise<BigNumber>,
-        getGas?: () => Promise<BigNumber>,
-      ) =>
-        this.buildMethodRunnableMulti(
-          contractAddress,
-          (abi) =>
-            abi.methods[abiElement.name](
-              ...Object.values(args).map((x) => (x instanceof BigNumber ? x.toString() : x)),
-            ),
-          validation,
-          getValue,
-          getGas,
-        );
-    }
-    return methods as any;
+    return this._methods;
   }
 
   public readOnlyInstance(
@@ -95,11 +106,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
   ): FunctionalAbiInstanceViews<FunctionalAbi> {
     const viewsConverted: any = {};
     for (const viewName of Object.keys(this.views)) {
-      viewsConverted[viewName] = (
-        args: any,
-        batch?: Web3BatchRequest,
-        callback?: (result: any) => void,
-      ) => this.views[viewName](config, contractAddress, args, batch, callback);
+      viewsConverted[viewName] = (args: any, batch?: Web3BatchRequest) =>
+        this._views[viewName](config, contractAddress, args, batch);
     }
     return viewsConverted;
   }
@@ -138,47 +146,44 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     }
   }
 
-  protected async getViewMulti<T extends FunctionalAbiMethodReturnType>(
+  protected callView<T extends FunctionalAbiMethodReturnType>(
     config: BlockchainDefinition,
     contractAddress: string,
     fetchMethod: AbiMethodFetchMethod<FunctionalAbi>,
     batch?: Web3BatchRequest,
-    callback?: (result: T) => void
-  ): Promise<T | void> {
-    const contract = await this.getReadonlyMultiChainContract(config, contractAddress);
-    const definitions = this.getContractFunctionAbiDefinition(contract);
-    const call = await fetchMethod(definitions);
-    const method = contract.methods[call.definition.name](...call.args);
+  ): Promise<T> {
+    return new Promise<T>(async (resolve, reject) => {
+      const contract = await this.getReadonlyMultiChainContract(config, contractAddress);
+      const definitions = this._abiFunctionalExecutable;
+      const call = await fetchMethod(definitions);
+      const method = contract.methods[call.definition.name](...call.args);
 
-    if (typeof batch !== 'undefined' && typeof callback !== 'undefined') {
-      const jsonRpcCall: JsonRpcOptionalRequest = {
-        jsonrpc: '2.0',
-        id: uuidv4(),
-        method: 'eth_call',
-        params: [
-          {
-            to: contractAddress,
-            data: method.encodeABI(),
-          },
-          'latest',
-        ],
-      };
-      batch
-        .add<string>(jsonRpcCall)
-        .then((response) => {
-          const transformed = decodeMethodReturn(call.definition, response);
-          callback(transformed as T);
-        })
-        .catch((errorContext) => console.log(errorContext));
-    }
-    const result = await method.call();
-    const transformed = result as T;
+      if (typeof batch !== 'undefined') {
+        const jsonRpcCall: JsonRpcOptionalRequest = {
+          jsonrpc: '2.0',
+          id: uuidv4(),
+          method: 'eth_call',
+          params: [
+            {
+              to: contractAddress,
+              data: method.encodeABI(),
+            },
+            'latest',
+          ],
+        };
+        batch
+          .add<string>(jsonRpcCall)
+          .then((response) => {
+            const transformed = decodeMethodReturn(call.definition, response);
+            resolve(transformed as T);
+          })
+          .catch((errorContext) => reject(errorContext));
+      }
+      const result = await method.call();
+      const transformed = result as T;
 
-    if (typeof callback === 'undefined') {
-      return transformed;
-    } else {
-      callback(transformed);
-    }
+      resolve(transformed);
+    });
   }
 
   protected buildMethodRunnableMulti(
@@ -320,15 +325,15 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     );
   }
 
-  private getContractFunctionAbiDefinition(contract: Contract<any>): FunctionalAbiExecutable<FunctionalAbi> {
+  private getContractFunctionAbiDefinition(): FunctionalAbiExecutable<FunctionalAbi> {
     let definition = {
       methods: [],
     };
     // @ts-ignore
-    for (const abiMethod of contract._overloadedMethodAbis.values()) {
-      definition.methods[abiMethod[0].name] = (...args: any[]) => {
+    for (const abiMethod of Object.values(this._abiFunctional)) {
+      definition.methods[abiMethod.name] = (...args: any[]) => {
         return {
-          definition: abiMethod[0],
+          definition: abiMethod,
           args: args,
         };
       };

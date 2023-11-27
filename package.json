@@ -1,6 +1,6 @@
 {
   "name": "@unleashed-business/ts-web3-commons",
-  "version": "5.1.3",
+  "version": "5.1.4",
   "description": "",
   "private": false,
   "main": "dist/index.js",

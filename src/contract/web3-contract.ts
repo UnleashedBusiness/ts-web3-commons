@@ -178,11 +178,12 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
             resolve(transformed as T);
           })
           .catch((errorContext) => reject(errorContext));
-      }
-      const result = await method.call();
-      const transformed = result as T;
+      } else {
+        const result = await method.call();
+        const transformed = result as T;
 
-      resolve(transformed);
+        resolve(transformed);
+      }
     });
   }
 

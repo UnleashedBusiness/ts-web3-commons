@@ -13,9 +13,16 @@ export const scalePipe =
     value.dividedBy(scaling);
 
 export const scaleForTokenPipe =
-  (config: BlockchainDefinition, tokenContract: Web3Contract<Erc20AbiFunctional>, tokenAddress: string) =>
+  (
+    config: BlockchainDefinition,
+    tokenContract: Web3Contract<Erc20AbiFunctional>,
+    tokenAddress: string,
+    reverse: boolean = false,
+  ) =>
   (value: BigNumber): Promise<BigNumber> =>
     tokenContract.views
       .decimals<NumericResult>(config, tokenAddress, {})
       .then(bigNumberPipe)
-      .then(async (input) => value.dividedBy(10 ** input.toNumber()));
+      .then(async (input) =>
+        reverse ? value.multipliedBy(10 ** input.toNumber()) : value.dividedBy(10 ** input.toNumber()),
+      );

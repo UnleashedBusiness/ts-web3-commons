@@ -64,9 +64,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
               for (const input of abiElement.inputs) {
                 argsLocal.push(args[input.name]);
               }
-              return abi.methods[abiElement.name](
-                ...argsLocal.map((x) => (x instanceof BigNumber ? x.toString() : x)),
-              );
+              return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toString() : x)));
             },
             validation,
             getValue,
@@ -186,7 +184,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
             const transformed = decodeMethodReturn(call.definition, response);
             resolve(transformed as T);
           })
-          .catch((errorContext) => reject(errorContext));
+          .catch((error) => reject({ error, call, contractAddress }));
       });
     } else {
       return method.call().then((x: any) => x as T);

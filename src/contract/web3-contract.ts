@@ -148,7 +148,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
       return;
     } else if (!this._contractConnected.has(address)) {
       // @ts-ignore It is the same but tsc does not see it :/
-      this._contractConnected.set(address, new this.walletConnection.web3.eth.Contract(this.getAbi(), address));
+      this._contractConnected.set(address, new this.walletConnection.web3.eth.Contract(this.abi, address));
     }
   }
 

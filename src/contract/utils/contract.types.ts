@@ -37,7 +37,7 @@ export type AbiPropertyFetchMethod<FunctionalAbi extends FunctionalAbiDefinition
 export type FunctionalAbiViews<FunctionalAbi extends FunctionalAbiDefinition> = {
   [K in keyof FunctionalAbi as FunctionalAbi[K] extends {
     stateMutability: 'view';
-  }
+  } | { stateMutability: 'pure' }
     ? K
     : never]: <R extends FunctionalAbiMethodReturnType>(
     config: BlockchainDefinition,
@@ -53,9 +53,11 @@ export type FunctionalAbiViews<FunctionalAbi extends FunctionalAbiDefinition> = 
 };
 
 export type FunctionalAbiInstanceViews<FunctionalAbi extends FunctionalAbiDefinition> = {
-  [K in keyof FunctionalAbi as FunctionalAbi[K] extends {
-    stateMutability: 'view';
-  }
+  [K in keyof FunctionalAbi as FunctionalAbi[K] extends
+    | {
+        stateMutability: 'view';
+      }
+    | { stateMutability: 'pure' }
     ? K
     : never]: <R extends FunctionalAbiMethodReturnType>(
     args: {
@@ -69,7 +71,9 @@ export type FunctionalAbiInstanceViews<FunctionalAbi extends FunctionalAbiDefini
 };
 
 export type FunctionalAbiMethods<FunctionalAbi extends FunctionalAbiDefinition> = {
-  [K in keyof FunctionalAbi as FunctionalAbi[K] extends { stateMutability: 'view' } ? never : K]: (
+  [K in keyof FunctionalAbi as FunctionalAbi[K] extends { stateMutability: 'view' } | { stateMutability: 'pure' }
+    ? never
+    : K]: (
     contractAddress: string,
     args: {
       [key in keyof FunctionalAbi[K]['argumentSignature']]: MatchPrimitiveType<

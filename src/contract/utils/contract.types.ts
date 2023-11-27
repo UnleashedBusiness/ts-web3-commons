@@ -28,7 +28,7 @@ export type NumericResult = bigint | number | string | BigNumber;
 
 export type AbiMethodFetchMethod<FunctionalAbi extends FunctionalAbiDefinition> = (
   abi: FunctionalAbiExecutable<FunctionalAbi>,
-) => Promise<FunctionalAbiMethodDefinition> | FunctionalAbiMethodDefinition;
+) => FunctionalAbiMethodDefinition;
 
 export type AbiPropertyFetchMethod<FunctionalAbi extends FunctionalAbiDefinition> =
   | AbiMethodFetchMethod<FunctionalAbi>

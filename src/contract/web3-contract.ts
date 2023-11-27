@@ -49,7 +49,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
       if (abiElement.type !== 'function') continue;
       localAbiFunctional[abiElement.name as string] = abiElement;
 
-      if (abiElement.stateMutability !== 'view') {
+      if (abiElement.stateMutability !== 'view' && abiElement.stateMutability !== 'pure') {
         localMethods[abiElement.name] = (
           contractAddress: string,
           args: any,

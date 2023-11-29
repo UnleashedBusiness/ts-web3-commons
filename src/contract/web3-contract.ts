@@ -17,6 +17,7 @@ import {
   FunctionalAbiMethods,
   FunctionalAbiViews,
 } from './utils/contract.types';
+import { bn_wrap } from "../utils/big-number.utils";
 
 export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
   private _contractConnected: Map<string, any> = new Map();
@@ -314,20 +315,22 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     fetchMethod: (contract: any, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
     getValue?: () => Promise<BigNumber>,
   ): Promise<BigNumber> {
-    const contract = await this.contractConnectedMulti(contractAddress);
+    const contract = await this.getReadonlyMultiChainContract(this.walletConnection.blockchain, contractAddress);
     if (typeof contract === 'undefined') return new BigNumber(0);
 
     const value = getValue ? await getValue() : new BigNumber(0);
     const method = await fetchMethod(contract, this.walletConnection.accounts[0]);
 
-    return new BigNumber(
-      Number(
-        await method.estimateGas({
-          from: this.walletConnection.accounts[0],
-          value: value.toString(),
-        }),
-      ),
-    );
+    const tx = {
+      chain: SUPPORTED_WAGMI_CHAINS.filter((x) => x.id === this.walletConnection.blockchain.networkId).pop(),
+      account: this.walletConnection.accounts[0],
+      to: contractAddress,
+      data: method.encodeABI(),
+      value: value.toString(),
+    };
+    const estimate = await this.walletConnection.getReadOnlyClient(this.walletConnection.blockchain).estimateGas(tx);
+
+    return bn_wrap(estimate);
   }
 
   private getContractFunctionAbiDefinition(): FunctionalAbiExecutable<FunctionalAbi> {

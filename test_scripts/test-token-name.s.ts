@@ -24,7 +24,7 @@ const config = blockchainIndex.MUMBAI_TESTCHAIN;
 
 const batch = new (web3Connection.getWeb3ReadOnly(config).BatchRequest)();
 const token = '0x9c3c9283d3e44854697cd22d3faa240cfb032889';
-
+/*
 contract.views.name(config, token, {}).then((value) => console.log(value));
 contract.views.name(config, token, {}, batch).then((result) => console.log(result));
 contract.views
@@ -40,4 +40,9 @@ instance.totalSupply({})
   .then(scaleForTokenPipe(config, contract, token))
   .then((x) => console.log(x.toFixed()));
 
-console.log(bn_wrap("1000000000000000000000000").toFixed());
+console.log(bn_wrap("1000000000000000000000000").toFixed());*/
+
+
+contract.views.name(config, token, {}, batch).then(x => console.log(x));
+contract.views.name(config, token, {}, batch).then(x => console.log(x));
+batch.execute({ timeout: 30_000 }).then(x => console.log(x))

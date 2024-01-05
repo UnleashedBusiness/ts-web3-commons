@@ -1,3 +1,18 @@
+import {
+  arbitrum, arbitrumNova,
+  avalanche, avalancheFuji,
+  bsc,
+  bscTestnet,
+  Chain,
+  mainnet,
+  opBNB,
+  opBNBTestnet,
+  optimism, optimismSepolia,
+  polygon,
+  polygonMumbai,
+  sepolia
+} from "viem/chains";
+
 export class BlockchainDefinition {
   constructor(
     public readonly network: string,
@@ -10,30 +25,39 @@ export class BlockchainDefinition {
   ) {}
 }
 
-export const blockchainIndex = {
-  MUMBAI_TESTCHAIN: new BlockchainDefinition(
-    'mumbai',
-    80001,
-    'Mumbai Polygon Testnet',
-    ['https://rpc.ankr.com/polygon_mumbai'],
-    'MATIC',
-    2,
-    'https://mumbai.polygonscan.com/',
-  ),
-  BSC_TESTCHAIN: new BlockchainDefinition(
-    'bnb-testnet',
-    97,
-    'BNB Testnet',
+export function fromViemChainToBlockchainDefinition(chain: Chain, blockTime: number): BlockchainDefinition {
+  return new BlockchainDefinition(
+    chain.network,
+    chain.id,
+    chain.name,
     [
-      'https://data-seed-prebsc-1-s1.binance.org:8545',
-      'https://data-seed-prebsc-2-s1.binance.org:8545',
-      'https://data-seed-prebsc-2-s1.binance.org:8545',
-      'https://data-seed-prebsc-2-s2.binance.org:8545',
+      ...chain.rpcUrls.default.http,
+      ...Object.keys(chain.rpcUrls)
+        .filter((x) => x !== 'default' && x !== 'public')
+        .map((x) => chain.rpcUrls[x].http)
+        .flat(),
     ],
-    'TBNB',
-    3,
-    'https://testnet.bscscan.com/',
-  ),
+    chain.nativeCurrency.symbol,
+    blockTime,
+    chain.blockExplorers.default.url,
+  );
+}
+
+export const blockchainIndex = {
+  MUMBAI_TESTCHAIN: fromViemChainToBlockchainDefinition(polygonMumbai, 2),
+  MATIC: fromViemChainToBlockchainDefinition(polygon, 2),
+  BSC_TESTCHAIN: fromViemChainToBlockchainDefinition(bscTestnet, 3),
+  BSC: fromViemChainToBlockchainDefinition(bsc, 3),
+  OPBNB_TESTNET: fromViemChainToBlockchainDefinition(opBNBTestnet, 1),
+  OPBNB: fromViemChainToBlockchainDefinition(opBNB, 1),
+  SEPOLIA_TESTCHAIN: fromViemChainToBlockchainDefinition(sepolia, 12),
+  MAINNET: fromViemChainToBlockchainDefinition(mainnet, 12),
+  OPTIMISM_SEPOLIA_TESTCHAIN: fromViemChainToBlockchainDefinition(optimismSepolia, 2),
+  OPTIMISM: fromViemChainToBlockchainDefinition(optimism, 12),
+  AVALANCHE_C_CHAIN_FUJI_TESTNET: fromViemChainToBlockchainDefinition(avalanche, 0.5),
+  AVALANCHE_C_CHAIN: fromViemChainToBlockchainDefinition(avalancheFuji, 0.5),
+  ARBITRUM_NOVA: fromViemChainToBlockchainDefinition(arbitrumNova, 0.25),
+  ARBITRUM: fromViemChainToBlockchainDefinition(arbitrum, 0.255),
   DMC_TESTCHAIN: new BlockchainDefinition(
     'dmc-testnet',
     1131,
@@ -42,32 +66,6 @@ export const blockchainIndex = {
     'DFI',
     10,
     'https://testnet3-dmc.mydefichain.com:8445/',
-  ),
-  BSC: new BlockchainDefinition(
-    'binance',
-    56,
-    'Binance Smart Chain',
-    [
-      'https://bsc-dataseed.binance.org/',
-      'https://bsc-dataseed1.defibit.io/',
-      'https://bscrpc.com',
-      'https://bsc-dataseed1.ninicoin.io/',
-      'https://bsc-dataseed2.binance.org/',
-      'https://bsc-dataseed2.defibit.io/',
-      'https://bsc-dataseed3.ninicoin.io/',
-    ],
-    'BNB',
-    3,
-    'https://bscscan.com/',
-  ),
-  MATIC: new BlockchainDefinition(
-    'matic',
-    137,
-    'Polygon',
-    ['https://polygon-rpc.com'],
-    'MATIC',
-    2,
-    'https://polygonscan.com/',
   ),
   DMC_MAINNET: new BlockchainDefinition(
     'dmc-mainnet',
@@ -82,4 +80,6 @@ export const blockchainIndex = {
 
 export const EmptyAddress = '0x0000000000000000000000000000000000000000';
 export const DeadAddress = '0x000000000000000000000000000000000000DEAD';
+
 export const DefaultEVMNativeTokenDecimals = 10 ** 18;
+export const DefaultEVMNativeTokenDecimalSize = 18;

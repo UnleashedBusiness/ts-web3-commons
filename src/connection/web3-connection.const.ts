@@ -1,17 +1,32 @@
 import {
-    avalanche,
-    avalancheFuji,
-    bsc,
-    bscTestnet,
-    goerli,
-    mainnet, opBNB,
-    opBNBTestnet,
-    polygon,
-    polygonMumbai,
+  arbitrum,
+  arbitrumNova,
+  avalanche,
+  avalancheFuji,
+  bsc,
+  bscTestnet,
+  mainnet, opBNB,
+  opBNBTestnet, optimism, optimismSepolia,
+  polygon,
+  polygonMumbai, sepolia
 } from "viem/chains";
-import { blockchainIndex, DefaultEVMNativeTokenDecimals } from "../utils/chains";
+import { blockchainIndex, DefaultEVMNativeTokenDecimalSize } from "../utils/chains";
 export const SUPPORTED_WAGMI_CHAINS = [
-  mainnet, polygon, polygonMumbai, bsc, bscTestnet, goerli, avalanche, avalancheFuji, opBNBTestnet, opBNB, {
+  sepolia,
+  mainnet,
+  polygonMumbai,
+  polygon,
+  bscTestnet,
+  bsc,
+  avalancheFuji,
+  avalanche,
+  opBNBTestnet,
+  opBNB,
+  arbitrumNova,
+  arbitrum,
+  optimismSepolia,
+  optimism,
+  {
     name:  blockchainIndex.DMC_TESTCHAIN.networkName,
     id: blockchainIndex.DMC_TESTCHAIN.networkId,
     network: blockchainIndex.DMC_TESTCHAIN.network,
@@ -26,7 +41,7 @@ export const SUPPORTED_WAGMI_CHAINS = [
     nativeCurrency: {
         name: blockchainIndex.DMC_TESTCHAIN.networkSymbol,
         symbol: blockchainIndex.DMC_TESTCHAIN.networkSymbol,
-        decimals: DefaultEVMNativeTokenDecimals
+        decimals: DefaultEVMNativeTokenDecimalSize
     }
 },{
     name:  blockchainIndex.DMC_MAINNET.networkName,
@@ -43,6 +58,6 @@ export const SUPPORTED_WAGMI_CHAINS = [
     nativeCurrency: {
       name: blockchainIndex.DMC_MAINNET.networkSymbol,
       symbol: blockchainIndex.DMC_MAINNET.networkSymbol,
-      decimals: DefaultEVMNativeTokenDecimals
+      decimals: DefaultEVMNativeTokenDecimalSize
     }
   }];

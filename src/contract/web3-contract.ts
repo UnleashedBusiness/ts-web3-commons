@@ -248,8 +248,17 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
           value: value.toString(),
         };
 
-        // @ts-ignore
-        const transactionHash = await this.walletConnection.walletClient.sendTransaction(tx);
+        let transactionHash: `0x${string}`;
+        if (this.walletConnection.isLocalAccountConnected()) {
+          const prepared = await this.walletConnection.walletClient.prepareTransactionRequest(tx);
+          const signature = await this.walletConnection.walletClient.signTransaction(prepared);
+          transactionHash = await this.walletConnection.walletClient.sendRawTransaction({
+            serializedTransaction: signature
+          });
+        } else {
+          // @ts-ignore
+          transactionHash = await this.walletConnection.walletClient.sendTransaction(tx);
+        }
 
         let blocks = 0;
         let result: any = undefined;

@@ -24,6 +24,8 @@ export interface WalletWeb3Connection extends ReadOnlyWeb3Connection {
 
   walletConnected(): boolean;
 
+  isLocalAccountConnected(): boolean;
+
   signV4(types: any, mainType: string, domain: {
     name: string,
     version: string,

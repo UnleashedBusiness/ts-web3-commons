@@ -1,4 +1,4 @@
-export default class UrlUtils {
+export class UrlUtils {
   public static getAbsoluteUrl(baseUrl: string, relativePath: string): string {
     return (
       (baseUrl[baseUrl.length - 1] === "/"

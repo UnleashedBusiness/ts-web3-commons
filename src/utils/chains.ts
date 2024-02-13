@@ -3,7 +3,7 @@ import {
   avalanche, avalancheFuji,
   bsc,
   bscTestnet,
-  Chain,
+  type Chain,
   mainnet,
   opBNB,
   opBNBTestnet,
@@ -21,13 +21,13 @@ export class BlockchainDefinition {
     public readonly networkRPC: string[],
     public readonly networkSymbol: string,
     public readonly blockTime: number,
-    public readonly explorerUrl: string,
+    public readonly explorerUrl?: string,
   ) {}
 }
 
 export function fromViemChainToBlockchainDefinition(chain: Chain, blockTime: number): BlockchainDefinition {
   return new BlockchainDefinition(
-    chain.network,
+    "chain_" + chain.id,
     chain.id,
     chain.name,
     [
@@ -39,7 +39,7 @@ export function fromViemChainToBlockchainDefinition(chain: Chain, blockTime: num
     ],
     chain.nativeCurrency.symbol,
     blockTime,
-    chain.blockExplorers.default.url,
+    chain.blockExplorers?.default.url,
   );
 }
 

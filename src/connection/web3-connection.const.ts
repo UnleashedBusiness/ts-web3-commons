@@ -1,17 +1,18 @@
 import {
-  arbitrum,
-  arbitrumNova,
-  avalanche,
-  avalancheFuji,
-  bsc,
-  bscTestnet,
-  mainnet, opBNB,
-  opBNBTestnet, optimism, optimismSepolia,
-  polygon,
-  polygonMumbai, sepolia
+    arbitrum,
+    arbitrumNova,
+    avalanche,
+    avalancheFuji,
+    bsc,
+    bscTestnet, type Chain,
+    mainnet, opBNB,
+    opBNBTestnet, optimism, optimismSepolia,
+    polygon,
+    polygonMumbai, sepolia
 } from "viem/chains";
-import { blockchainIndex, DefaultEVMNativeTokenDecimalSize } from "../utils/chains";
-export const SUPPORTED_WAGMI_CHAINS = [
+import { blockchainIndex, DefaultEVMNativeTokenDecimalSize } from "../utils/chains.js";
+
+export const SUPPORTED_WAGMI_CHAINS: Chain[] = [
   sepolia,
   mainnet,
   polygonMumbai,

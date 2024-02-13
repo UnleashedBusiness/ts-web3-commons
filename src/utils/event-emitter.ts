@@ -8,7 +8,7 @@
 
 /// <reference types="rxjs" />
 
-import {PartialObserver, Subject, Subscription} from 'rxjs';
+import {type PartialObserver, Subject, Subscription} from 'rxjs';
 
 /**
  * Use in components with the `@Output` directive to emit custom events

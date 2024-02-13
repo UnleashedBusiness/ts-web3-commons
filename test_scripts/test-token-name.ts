@@ -2,18 +2,12 @@ import {
   blockchainIndex,
   ContractGeneralConfig,
   ContractToolkitService,
-  EmptyAddress,
   NotificationService,
   ReadOnlyWeb3ConnectionService,
   TransactionRunningHelperService,
   Web3Contract,
-} from '../src';
-import { Erc20Abi, Erc20AbiFunctional } from '../src/abi/erc20.abi';
-import { bigNumberPipe, scaleForTokenPipe } from "../src/utils/contract-pipe.utils";
-import { v4 as uuidv4 } from "uuid";
-import { decodeMethodReturn } from "web3-eth-contract/lib/types";
-import { bn_wrap } from "../src/utils/big-number.utils";
-import BigNumber from "bignumber.js";
+} from '../src/index.js';
+import { Erc20Abi, type Erc20AbiFunctional } from '../src/abi/erc20.abi.js';
 
 const web3Connection = new ReadOnlyWeb3ConnectionService();
 const transactionHelper = new TransactionRunningHelperService(new NotificationService());

@@ -4,7 +4,8 @@
   "description": "",
   "private": false,
   "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "types": "dist/index.d.ts",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/UnleashedBusiness/ts-web3-commons"
@@ -15,12 +16,12 @@
     "dist"
   ],
   "dependencies": {
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "viem": "~1.21.4"
   },
   "peerDependencies": {
     "bignumber.js": "^9.1.2",
     "rxjs": "^7.8.1",
-    "viem": ">=1.12.1",
     "web3": ">=4.2.2",
     "web3-core": ">=4.3.1",
     "web3-eth": ">=4.3.1",
@@ -32,7 +33,7 @@
     "@types/node": "^20.6.3",
     "@types/uuid": "^9.0.5",
     "@types/ws": "^8.5.5",
-    "typescript": "^5.2.2",
+    "typescript": "~5.0.4",
     "ts-node": "^10.9.1"
   }
 }

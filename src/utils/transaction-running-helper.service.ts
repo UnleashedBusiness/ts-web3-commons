@@ -1,4 +1,4 @@
-import {NotificationService, PushNotification} from "./notification.service";
+import {NotificationService, PushNotification} from "./notification.service.js";
 
 export class TransactionRunningHelperService {
   public running = false;

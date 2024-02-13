@@ -30,7 +30,6 @@ export const SUPPORTED_WAGMI_CHAINS: Chain[] = [
   {
     name:  blockchainIndex.DMC_TESTCHAIN.networkName,
     id: blockchainIndex.DMC_TESTCHAIN.networkId,
-    network: blockchainIndex.DMC_TESTCHAIN.network,
     rpcUrls: {
         public: {
             http: blockchainIndex.DMC_TESTCHAIN.networkRPC
@@ -47,7 +46,6 @@ export const SUPPORTED_WAGMI_CHAINS: Chain[] = [
 },{
     name:  blockchainIndex.DMC_MAINNET.networkName,
     id: blockchainIndex.DMC_MAINNET.networkId,
-    network: blockchainIndex.DMC_MAINNET.network,
     rpcUrls: {
       public: {
         http: blockchainIndex.DMC_MAINNET.networkRPC

@@ -254,7 +254,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                     const prepared = await this.walletConnection.walletClient.prepareTransactionRequest(tx);
                     const signature = await this.walletConnection.walletClient.signTransaction({
                         ...prepared,
-                        account: prepared.account!
+                        account: prepared.account!,
+                        chain: prepared.chain!
                     });
                     transactionHash = await this.walletConnection.walletClient.sendRawTransaction({
                         serializedTransaction: signature

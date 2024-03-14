@@ -18,6 +18,7 @@ import {
     type FunctionalAbiViews,
 } from './utils/contract.types.js';
 import {bn_wrap} from "../utils/big-number.utils.js";
+import type {BatchRequest} from "./utils/batch-request.js";
 
 export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     private _contractConnected: Map<string, any> = new Map();
@@ -76,7 +77,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                     config: BlockchainDefinition,
                     contractAddress: string,
                     args: any,
-                    batch?: Web3BatchRequest,
+                    batch?: BatchRequest,
+                    callback?: (result: any) => Promise<void>
                 ) =>
                     this.callView(
                         config,
@@ -89,6 +91,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                             return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toString() : x)));
                         },
                         batch,
+                        callback
                     );
             }
         }
@@ -154,12 +157,13 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         }
     }
 
-    protected callView<T extends FunctionalAbiMethodReturnType>(
+    protected async callView<T extends FunctionalAbiMethodReturnType>(
         config: BlockchainDefinition,
         contractAddress: string,
         fetchMethod: AbiMethodFetchMethod<FunctionalAbi>,
-        batch?: Web3BatchRequest,
-    ): Promise<T> {
+        batch?: BatchRequest,
+        callback?: (result: T) => Promise<void>
+    ): Promise<T | void> {
         const contract = this.getReadonlyMultiChainContract(config, contractAddress);
         const definitions = this._abiFunctionalExecutable;
         const call = fetchMethod(definitions);
@@ -178,16 +182,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                     'latest',
                 ],
             };
-            const deferredResult = batch.add<string>(jsonRpcCall);
 
-            return new Promise<T>(async (resolve, reject) => {
-                deferredResult
-                    .then((response) => {
-                        const transformed = decodeMethodReturn(call.definition, response);
-                        resolve(transformed as T);
-                    })
-                    .catch((error) => reject({error, call, contractAddress}));
-            });
+            batch.add(jsonRpcCall, response => callback!(decodeMethodReturn(call.definition, response) as T));
         } else {
             return method.call().then((x: any) => x as T);
         }

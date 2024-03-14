@@ -2,7 +2,7 @@ import {type AbiFunctionFragment, type MatchPrimitiveType} from 'web3';
 import {BigNumber} from 'bignumber.js';
 import {BlockchainDefinition} from '../../utils/chains.js';
 import {MethodRunnable} from '../web3-contract.js';
-import {Web3BatchRequest} from 'web3-core';
+import type {BatchRequest} from "./batch-request.js";
 
 export type AbiDefinition = AbiFunctionFragment[];
 
@@ -48,8 +48,9 @@ export type FunctionalAbiViews<FunctionalAbi extends FunctionalAbiDefinition> = 
                 unknown
             >;
         },
-        batch?: Web3BatchRequest,
-    ) => Promise<R>;
+        batch?: BatchRequest,
+        callback?: (response: R) => Promise<void> | void,
+    ) => Promise<R | void>;
 };
 
 export type FunctionalAbiInstanceViews<FunctionalAbi extends FunctionalAbiDefinition> = {
@@ -65,8 +66,9 @@ export type FunctionalAbiInstanceViews<FunctionalAbi extends FunctionalAbiDefini
                 unknown
             >;
         },
-        batch?: Web3BatchRequest,
-    ) => Promise<R>;
+        batch?: BatchRequest,
+        callback?: (response: R) => Promise<void> | void,
+    ) => Promise<R | void>;
 };
 
 export type FunctionalAbiMethods<FunctionalAbi extends FunctionalAbiDefinition> = {

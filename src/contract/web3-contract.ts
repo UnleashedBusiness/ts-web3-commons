@@ -78,7 +78,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                     contractAddress: string,
                     args: any,
                     batch?: BatchRequest,
-                    callback?: (result: any) => Promise<void>
+                    callback?: (result: any) =>  Promise<any> | any
                 ) =>
                     this.callView(
                         config,
@@ -162,7 +162,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         contractAddress: string,
         fetchMethod: AbiMethodFetchMethod<FunctionalAbi>,
         batch?: BatchRequest,
-        callback?: (result: T) => Promise<void>
+        callback?: (result: T) =>  Promise<any> | any
     ): Promise<T | void> {
         const contract = this.getReadonlyMultiChainContract(config, contractAddress);
         const definitions = this._abiFunctionalExecutable;

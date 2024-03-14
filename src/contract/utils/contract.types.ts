@@ -49,7 +49,7 @@ export type FunctionalAbiViews<FunctionalAbi extends FunctionalAbiDefinition> = 
             >;
         },
         batch?: BatchRequest,
-        callback?: (response: R) => Promise<void> | void,
+        callback?: (response: R) => Promise<any> | any,
     ) => Promise<R | void>;
 };
 
@@ -67,7 +67,7 @@ export type FunctionalAbiInstanceViews<FunctionalAbi extends FunctionalAbiDefini
             >;
         },
         batch?: BatchRequest,
-        callback?: (response: R) => Promise<void> | void,
+        callback?: (response: R) => Promise<any> | any,
     ) => Promise<R | void>;
 };
 

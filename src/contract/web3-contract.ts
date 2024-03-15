@@ -1,6 +1,5 @@
 import {BigNumber} from 'bignumber.js';
 import {type JsonRpcOptionalRequest} from 'web3';
-import {Web3BatchRequest} from 'web3-core';
 import {BlockchainDefinition, EmptyAddress} from '../utils/chains.js';
 import {decodeMethodReturn, type NonPayableMethodObject, type PayableMethodObject} from 'web3-eth-contract';
 import {v4 as uuidv4} from 'uuid';
@@ -117,8 +116,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         const viewsConverted: any = {};
         const views = Object.keys(this.views) as any[];
         for (const viewName of views) {
-            viewsConverted[viewName] = (args: any, batch?: Web3BatchRequest) =>
-                (this._views as Record<string, any>)[viewName](config, contractAddress, args, batch);
+            viewsConverted[viewName] = (args: any, batch?: BatchRequest, callback?: (result: any) => Promise<any> | any) =>
+                (this._views as Record<string, any>)[viewName](config, contractAddress, args, batch, callback);
         }
         return viewsConverted;
     }

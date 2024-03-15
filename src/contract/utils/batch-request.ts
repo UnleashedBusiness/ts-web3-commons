@@ -15,16 +15,19 @@ export class BatchRequest {
     }
 
     public async execute(config: { timeout: number }): Promise<void> {
-        const responses = await this.batch.execute(config);
-        let i = 0;
-        for (const response of responses) {
-            this.callbacks[response.id!](response.result as string)
-                .then(() => {
-                    i += 1;
-                    if (i >= responses.length) {
-                        Promise.resolve();
-                    }
-                }).catch((e) => Promise.reject(e));
-        }
+        return new Promise(async (resolve, reject) => {
+            const responses = await this.batch.execute(config);
+            let i = 0;
+            for (const response of responses) {
+                this.callbacks[response.id!](response.result as string)
+                    .then(() => {
+                        i += 1;
+                        if (i >= responses.length) {
+                            resolve();
+                        }
+                    }).catch(reject);
+
+            }
+        });
     }
 }

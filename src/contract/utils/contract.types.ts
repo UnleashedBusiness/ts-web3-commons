@@ -1,4 +1,4 @@
-import {type AbiFunctionFragment, type MatchPrimitiveType} from 'web3';
+import {type AbiFunctionFragment} from 'web3';
 import {BigNumber} from 'bignumber.js';
 import {BlockchainDefinition} from '../../utils/chains.js';
 import {MethodRunnable} from '../web3-contract.js';
@@ -6,10 +6,14 @@ import type {BatchRequest} from "./batch-request.js";
 
 export type AbiDefinition = AbiFunctionFragment[];
 
+export type ArgumentSignature = { [name: string]: any | ArgumentSignature };
+
 export type FunctionalAbiDefinition = {
-    [key: string]: AbiFunctionFragment & {
-        argumentSignature: { [name: string]: string };
-        returnSignature: { [name: string]: string };
+    [key: string]: {
+        name: string,
+        stateMutability: string,
+        argumentSignature: ArgumentSignature;
+        returnSignature: ArgumentSignature;
     };
 };
 
@@ -43,10 +47,7 @@ export type FunctionalAbiViews<FunctionalAbi extends FunctionalAbiDefinition> = 
         config: BlockchainDefinition,
         contractAddress: string,
         args: {
-            [key in keyof FunctionalAbi[K]['argumentSignature']]: MatchPrimitiveType<
-                FunctionalAbi[K]['argumentSignature'][key],
-                unknown
-            >;
+            [key in keyof FunctionalAbi[K]['argumentSignature']]: FunctionalAbi[K]['argumentSignature'][key];
         },
         batch?: BatchRequest,
         callback?: (response: R) => Promise<any> | any,
@@ -61,10 +62,7 @@ export type FunctionalAbiInstanceViews<FunctionalAbi extends FunctionalAbiDefini
         ? K
         : never]: <R extends FunctionalAbiMethodReturnType>(
         args: {
-            [key in keyof FunctionalAbi[K]['argumentSignature']]: MatchPrimitiveType<
-                FunctionalAbi[K]['argumentSignature'][key],
-                unknown
-            >;
+            [key in keyof FunctionalAbi[K]['argumentSignature']]: FunctionalAbi[K]['argumentSignature'][key];
         },
         batch?: BatchRequest,
         callback?: (response: R) => Promise<any> | any,
@@ -77,10 +75,7 @@ export type FunctionalAbiMethods<FunctionalAbi extends FunctionalAbiDefinition> 
         : K]: (
         contractAddress: string,
         args: {
-            [key in keyof FunctionalAbi[K]['argumentSignature']]: MatchPrimitiveType<
-                FunctionalAbi[K]['argumentSignature'][key],
-                unknown
-            >;
+            [key in keyof FunctionalAbi[K]['argumentSignature']]: FunctionalAbi[K]['argumentSignature'][key];
         },
         validation?: () => Promise<void>,
         getValue?: () => Promise<BigNumber>,

@@ -15,8 +15,13 @@ export class BatchRequest {
     }
 
     public async execute(config: { timeout: number }): Promise<void> {
+        if (this.batch.requests.length <= 0) {
+            return;
+        }
+
         return new Promise(async (resolve, reject) => {
             const responses = await this.batch.execute(config);
+
             let i = 0;
             for (const response of responses) {
                 this.callbacks[response.id!](response.result as string)

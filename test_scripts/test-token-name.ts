@@ -1,13 +1,13 @@
 import {
   blockchainIndex,
   ContractGeneralConfig,
-  ContractToolkitService,
+  ContractToolkitService, EmptyAddress,
   NotificationService,
   ReadOnlyWeb3ConnectionService,
   TransactionRunningHelperService,
   Web3Contract,
 } from '../src/index.js';
-import { Erc20Abi, type Erc20AbiFunctional } from '../src/abi/erc20.abi.js';
+import { Erc20Abi, type Erc20AbiFunctional } from '../src/index.js';
 import {BatchRequest} from "../src/contract/utils/batch-request.js";
 
 const web3Connection = new ReadOnlyWeb3ConnectionService();
@@ -15,6 +15,7 @@ const transactionHelper = new TransactionRunningHelperService(new NotificationSe
 const toolkit = new ContractToolkitService(web3Connection, transactionHelper, {} as ContractGeneralConfig);
 
 const contract = new Web3Contract<Erc20AbiFunctional>(toolkit, Erc20Abi);
+
 const config = blockchainIndex.MUMBAI_TESTCHAIN;
 const client = web3Connection.getWeb3ReadOnly(config);
 
@@ -53,6 +54,8 @@ new Promise(async () => {
   await contract.views.name(config, token, {}, batch, x => console.log(x));
   await contract.views.name(config, token, {}, batch, x => console.log(x));
   await contract.views.name(config, token, {}, batch, x => console.log(x));
+  await contract.views.balanceOf(config, token, {account: EmptyAddress}, batch, x => console.log(x));
+
   await batch.execute({ timeout: 30_000 });
 
   console.log('emd');

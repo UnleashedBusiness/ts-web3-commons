@@ -38,6 +38,9 @@ instance.totalSupply({})
 
 console.log(bn_wrap("1000000000000000000000000").toFixed());*/
 new Promise(async () => {
+  const batchEmpty = new BatchRequest(client);
+  await batchEmpty.execute({timeout: 20_000});
+
   await contract.views.name(config, token, {}, batch, async x => console.log(x, 1))
   await  contract.views.name(config, token, {}, batch, x => console.log(x));
   await contract.views.name(config, token, {}, batch, x => console.log(x));
@@ -53,4 +56,4 @@ new Promise(async () => {
   await batch.execute({ timeout: 30_000 });
 
   console.log('emd');
-}).then();
+}).catch(e => console.log(e)).then();

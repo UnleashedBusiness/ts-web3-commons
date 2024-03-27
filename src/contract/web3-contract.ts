@@ -90,10 +90,11 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                         contractAddress,
                         (abi) => {
                             const argsLocal = [];
-                            for (const input of abiElement.inputs) {
-                                argsLocal.push(args[input.name]);
+                            for (const inputKey in abiElement.inputs) {
+                                const input = abiElement.inputs[inputKey];
+                                argsLocal.push(args[input.name !== '' ? input.name : inputKey]);
                             }
-                            return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toString() : x)));
+                            return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toFixed() : x)));
                         },
                         batch,
                         callback

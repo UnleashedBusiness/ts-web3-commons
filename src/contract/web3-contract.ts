@@ -351,8 +351,9 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         let definition = {
             methods: {} as any,
         };
-        for (const abiMethod of Object.values(this._abiFunctional)) {
-            definition.methods[abiMethod.name] = (...args: any[]) => {
+        for (const abiMethodKey of Object.keys(this._abiFunctional)) {
+            const abiMethod = this._abiFunctional[abiMethodKey];
+            definition.methods[abiMethodKey] = (...args: any[]) => {
                 return {
                     definition: abiMethod,
                     args: args,

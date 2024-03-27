@@ -46,12 +46,18 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         const localViews: any = {};
         const localMethods: any = {};
 
+        const existing = [];
         for (const abiElement of this.abi) {
             if (abiElement.type !== 'function') continue;
             localAbiFunctional[abiElement.name as string] = abiElement;
 
+            const alreadyAvailable = existing.filter(x => x === (abiElement.name as string)).length;
+            const suffix = alreadyAvailable > 0
+                ? `_${alreadyAvailable}`
+                : '';
+
             if (abiElement.stateMutability !== 'view' && abiElement.stateMutability !== 'pure') {
-                localMethods[abiElement.name] = (
+                localMethods[abiElement.name + suffix] = (
                     contractAddress: string,
                     args: any,
                     validation?: () => Promise<void>,
@@ -72,7 +78,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                         getGas,
                     );
             } else {
-                localViews[abiElement.name] = (
+                localViews[abiElement.name + suffix] = (
                     config: BlockchainDefinition,
                     contractAddress: string,
                     args: any,
@@ -93,6 +99,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                         callback
                     );
             }
+
+            existing.push(abiElement.name);
         }
 
         this._abiFunctional = localAbiFunctional;

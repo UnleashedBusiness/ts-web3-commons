@@ -196,7 +196,9 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                 return Promise.resolve(callback!(decodeMethodReturn(call.definition, response) as T));
             });
         } else {
-            return method.call().then((x: any) => x as T);
+            return method.call()
+                .then((x: any) => x as T)
+                .catch((error: any) => console.log(error));
         }
     }
 

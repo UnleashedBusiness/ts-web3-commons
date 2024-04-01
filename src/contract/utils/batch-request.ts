@@ -9,8 +9,11 @@ export class BatchRequest {
         this.batch = new web3Connection.BatchRequest();
     }
 
-    public add(request: JsonRpcOptionalRequest, callback: (response: string) => Promise<void>) {
-        this.batch.add(request);
+    public add(request: JsonRpcOptionalRequest, callback: (response: string) => Promise<void>, onError?: (reason: any) => Promise<void>) {
+        const response = this.batch.add(request);
+        if (onError !== undefined) {
+            response.catch(onError);
+        }
         this.callbacks[request.id!] = callback;
     }
 
@@ -20,18 +23,21 @@ export class BatchRequest {
         }
 
         return new Promise(async (resolve, reject) => {
-            const responses = await this.batch.execute(config);
+            try {
+                const responses = await this.batch.execute(config);
 
-            let i = 0;
-            for (const response of responses) {
-                this.callbacks[response.id!](response.result as string)
-                    .then(() => {
-                        i += 1;
-                        if (i >= responses.length) {
-                            resolve();
-                        }
-                    }).catch(reject);
-
+                let i = 0;
+                for (const response of responses) {
+                    this.callbacks[response.id!](response.result as string)
+                        .then(() => {
+                            i += 1;
+                            if (i >= responses.length) {
+                                resolve();
+                            }
+                        }).catch(reject);
+                }
+            } catch (e) {
+                reject(e);
             }
         });
     }

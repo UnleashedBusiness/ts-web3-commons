@@ -84,7 +84,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                     contractAddress: string,
                     args: any,
                     batch?: BatchRequest,
-                    callback?: (result: any) => Promise<any> | any
+                    callback?: (result: any) => Promise<any> | any,
+                    onError?: (reason: any) => Promise<void> | void,
                 ) =>
                     this.callView(
                         config,
@@ -98,7 +99,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                             return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toFixed() : x)));
                         },
                         batch,
-                        callback
+                        callback,
+                        onError
                     );
             }
 
@@ -126,8 +128,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         const viewsConverted: any = {};
         const views = Object.keys(this.views) as any[];
         for (const viewName of views) {
-            viewsConverted[viewName] = (args: any, batch?: BatchRequest, callback?: (result: any) => Promise<any> | any) =>
-                (this._views as Record<string, any>)[viewName](config, contractAddress, args, batch, callback);
+            viewsConverted[viewName] = (args: any, batch?: BatchRequest, callback?: (result: any) => Promise<any> | any, onError?: (reason: any) => Promise<void> | void) =>
+                (this._views as Record<string, any>)[viewName](config, contractAddress, args, batch, callback, onError);
         }
         return viewsConverted;
     }
@@ -171,7 +173,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         contractAddress: string,
         fetchMethod: AbiMethodFetchMethod<FunctionalAbi>,
         batch?: BatchRequest,
-        callback?: (result: T) => Promise<any> | any
+        callback?: (result: T) => Promise<any> | any,
+        onError?: (reason: any) => Promise<void> | void,
     ): Promise<T | void> {
         const contract = this.getReadonlyMultiChainContract(config, contractAddress);
         const definitions = this._abiFunctionalExecutable;
@@ -194,7 +197,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
 
             batch.add(jsonRpcCall, async response => {
                 return Promise.resolve(callback!(decodeMethodReturn(call.definition, response) as T));
-            });
+            }, onError !== undefined ? async reason => Promise.resolve(onError!(reason)) : undefined);
         } else {
             return method.call()
                 .then((x: any) => x as T)

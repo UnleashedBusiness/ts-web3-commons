@@ -5,14 +5,21 @@ export class BatchRequest {
     private batch: Web3BatchRequest;
     private callbacks: Record<string, (response: string) => Promise<void>> = {};
 
-    constructor(web3Connection: Web3) {
+    private readonly defaultErrorHandler: (request: JsonRpcOptionalRequest, reason: any) => Promise<void> = async (request, reason) => {
+        console.warn(`Unhandled error for request in batch! Request: ${JSON.stringify(request)}, Error: ${reason}`);
+    };
+
+    constructor(web3Connection: Web3, defaultErrorHandler: (request: JsonRpcOptionalRequest, reason: any) => Promise<void>) {
         this.batch = new web3Connection.BatchRequest();
+        this.defaultErrorHandler = defaultErrorHandler;
     }
 
     public add(request: JsonRpcOptionalRequest, callback: (response: string) => Promise<void>, onError?: (reason: any) => Promise<void>) {
         const response = this.batch.add(request);
         if (onError !== undefined) {
             response.catch(onError);
+        } else {
+            response.catch(reason => this.defaultErrorHandler(request, reason));
         }
         this.callbacks[request.id!] = callback;
     }

@@ -9,9 +9,11 @@ export class BatchRequest {
         console.warn(`Unhandled error for request in batch! Request: ${JSON.stringify(request)}, Error: ${reason}`);
     };
 
-    constructor(web3Connection: Web3, defaultErrorHandler: (request: JsonRpcOptionalRequest, reason: any) => Promise<void>) {
+    constructor(web3Connection: Web3, defaultErrorHandler: ((request: JsonRpcOptionalRequest, reason: any) => Promise<void>) | undefined = undefined) {
         this.batch = new web3Connection.BatchRequest();
-        this.defaultErrorHandler = defaultErrorHandler;
+        if (defaultErrorHandler !== undefined) {
+            this.defaultErrorHandler = defaultErrorHandler;
+        }
     }
 
     public add(request: JsonRpcOptionalRequest, callback: (response: string) => Promise<void>, onError?: (reason: any) => Promise<void>) {

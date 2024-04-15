@@ -1,6 +1,5 @@
 import {BigNumber} from 'bignumber.js';
 import {type JsonRpcOptionalRequest} from 'web3';
-import {Web3BatchRequest} from 'web3-core';
 import {BlockchainDefinition, EmptyAddress} from '../utils/chains.js';
 import {decodeMethodReturn, type NonPayableMethodObject, type PayableMethodObject} from 'web3-eth-contract';
 import {v4 as uuidv4} from 'uuid';
@@ -18,6 +17,7 @@ import {
     type FunctionalAbiViews,
 } from './utils/contract.types.js';
 import {bn_wrap} from "../utils/big-number.utils.js";
+import type {BatchRequest} from "./utils/batch-request.js";
 
 export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     private _contractConnected: Map<string, any> = new Map();
@@ -46,12 +46,18 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         const localViews: any = {};
         const localMethods: any = {};
 
+        const existing = [];
         for (const abiElement of this.abi) {
             if (abiElement.type !== 'function') continue;
             localAbiFunctional[abiElement.name as string] = abiElement;
 
+            const alreadyAvailable = existing.filter(x => x === (abiElement.name as string)).length;
+            const suffix = alreadyAvailable > 0
+                ? `_${alreadyAvailable}`
+                : '';
+
             if (abiElement.stateMutability !== 'view' && abiElement.stateMutability !== 'pure') {
-                localMethods[abiElement.name] = (
+                localMethods[abiElement.name + suffix] = (
                     contractAddress: string,
                     args: any,
                     validation?: () => Promise<void>,
@@ -62,8 +68,9 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                         contractAddress,
                         (abi) => {
                             const argsLocal = [];
-                            for (const input of abiElement.inputs) {
-                                argsLocal.push(args[input.name]);
+                            for (const inputKey in abiElement.inputs) {
+                                const input = abiElement.inputs[inputKey];
+                                argsLocal.push(args[input.name !== '' ? input.name : inputKey]);
                             }
                             return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toString() : x)));
                         },
@@ -72,25 +79,32 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                         getGas,
                     );
             } else {
-                localViews[abiElement.name] = (
+                localViews[abiElement.name + suffix] = (
                     config: BlockchainDefinition,
                     contractAddress: string,
                     args: any,
-                    batch?: Web3BatchRequest,
+                    batch?: BatchRequest,
+                    callback?: (result: any) => Promise<any> | any,
+                    onError?: (reason: any) => Promise<void> | void,
                 ) =>
                     this.callView(
                         config,
                         contractAddress,
                         (abi) => {
                             const argsLocal = [];
-                            for (const input of abiElement.inputs) {
-                                argsLocal.push(args[input.name]);
+                            for (const inputKey in abiElement.inputs) {
+                                const input = abiElement.inputs[inputKey];
+                                argsLocal.push(args[input.name !== '' ? input.name : inputKey]);
                             }
-                            return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toString() : x)));
+                            return abi.methods[abiElement.name](...argsLocal.map((x) => (x instanceof BigNumber ? x.toFixed() : x)));
                         },
                         batch,
+                        callback,
+                        onError
                     );
             }
+
+            existing.push(abiElement.name);
         }
 
         this._abiFunctional = localAbiFunctional;
@@ -114,8 +128,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         const viewsConverted: any = {};
         const views = Object.keys(this.views) as any[];
         for (const viewName of views) {
-            viewsConverted[viewName] = (args: any, batch?: Web3BatchRequest) =>
-                (this._views as Record<string, any>)[viewName](config, contractAddress, args, batch);
+            viewsConverted[viewName] = (args: any, batch?: BatchRequest, callback?: (result: any) => Promise<any> | any, onError?: (reason: any) => Promise<void> | void) =>
+                (this._views as Record<string, any>)[viewName](config, contractAddress, args, batch, callback, onError);
         }
         return viewsConverted;
     }
@@ -154,12 +168,14 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         }
     }
 
-    protected callView<T extends FunctionalAbiMethodReturnType>(
+    protected async callView<T extends FunctionalAbiMethodReturnType>(
         config: BlockchainDefinition,
         contractAddress: string,
         fetchMethod: AbiMethodFetchMethod<FunctionalAbi>,
-        batch?: Web3BatchRequest,
-    ): Promise<T> {
+        batch?: BatchRequest,
+        callback?: (result: T) => Promise<any> | any,
+        onError?: (reason: any) => Promise<void> | void,
+    ): Promise<T | void> {
         const contract = this.getReadonlyMultiChainContract(config, contractAddress);
         const definitions = this._abiFunctionalExecutable;
         const call = fetchMethod(definitions);
@@ -178,18 +194,14 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                     'latest',
                 ],
             };
-            const deferredResult = batch.add<string>(jsonRpcCall);
 
-            return new Promise<T>(async (resolve, reject) => {
-                deferredResult
-                    .then((response) => {
-                        const transformed = decodeMethodReturn(call.definition, response);
-                        resolve(transformed as T);
-                    })
-                    .catch((error) => reject({error, call, contractAddress}));
-            });
+            batch.add(jsonRpcCall, async response => {
+                return Promise.resolve(callback!(decodeMethodReturn(call.definition, response) as T));
+            }, onError !== undefined ? async reason => Promise.resolve(onError!(reason)) : undefined);
         } else {
-            return method.call().then((x: any) => x as T);
+            return method.call()
+                .then((x: any) => x as T)
+                .catch((error: any) => console.log(error));
         }
     }
 
@@ -354,8 +366,9 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         let definition = {
             methods: {} as any,
         };
-        for (const abiMethod of Object.values(this._abiFunctional)) {
-            definition.methods[abiMethod.name] = (...args: any[]) => {
+        for (const abiMethodKey of Object.keys(this._abiFunctional)) {
+            const abiMethod = this._abiFunctional[abiMethodKey];
+            definition.methods[abiMethodKey] = (...args: any[]) => {
                 return {
                     definition: abiMethod,
                     args: args,

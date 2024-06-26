@@ -135,6 +135,10 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     }
 
     protected initMultiChainContractReadonly(config: BlockchainDefinition, address: string): void {
+        if (address === EmptyAddress || address === undefined || address === null) {
+            throw new Error(`Cannot call empty address (${EmptyAddress}) as contract!`)
+        }
+
         if (!this._contractReadOnly.has(config.networkId)) {
             this._contractReadOnly.set(config.networkId, new Map<string, any>());
         }
@@ -159,6 +163,10 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     }
 
     protected async initForConnectedMulti(address: string) {
+        if (address === EmptyAddress || address === undefined || address === null) {
+            throw new Error(`Cannot call empty address (${EmptyAddress}) as contract!`)
+        }
+
         if (!this.walletConnection.walletConnected()) {
             this._contractConnected.delete(address);
             return;

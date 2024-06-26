@@ -42,6 +42,7 @@ new Promise(async () => {
   const batchEmpty = new BatchRequest(client);
   await batchEmpty.execute({timeout: 20_000});
 
+  //await contract.views.name(config, EmptyAddress, {}, batch, async x => console.log(x, 1))
   await contract.views.name(config, token, {}, batch, async x => console.log(x, 1))
   await  contract.views.name(config, token, {}, batch, x => console.log(x));
   await contract.views.name(config, token, {}, batch, x => console.log(x));

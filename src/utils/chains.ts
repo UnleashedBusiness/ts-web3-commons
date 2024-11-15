@@ -8,8 +8,8 @@ import {
   opBNB,
   opBNBTestnet,
   optimism, optimismSepolia,
-  polygon,
-  polygonMumbai,
+  polygon, polygonAmoy,
+  polygonMumbai, polygonZkEvm, polygonZkEvmTestnet,
   sepolia
 } from "viem/chains";
 
@@ -45,7 +45,10 @@ export function fromViemChainToBlockchainDefinition(chain: Chain, blockTime: num
 
 export const blockchainIndex = {
   MUMBAI_TESTCHAIN: fromViemChainToBlockchainDefinition(polygonMumbai, 2),
-  MATIC: fromViemChainToBlockchainDefinition(polygon, 2),
+  AMOY_TESTCHAIN: fromViemChainToBlockchainDefinition(polygonAmoy, 2),
+  ZKEVM_TESTCHAIN: fromViemChainToBlockchainDefinition(polygonZkEvmTestnet, 2),
+  MATIC: fromViemChainToBlockchainDefinition(polygon, 4),
+  ZKEVM_MAINNET: fromViemChainToBlockchainDefinition(polygonZkEvm, 4),
   BSC_TESTCHAIN: fromViemChainToBlockchainDefinition(bscTestnet, 3),
   BSC: fromViemChainToBlockchainDefinition(bsc, 3),
   OPBNB_TESTNET: fromViemChainToBlockchainDefinition(opBNBTestnet, 1),
@@ -65,7 +68,7 @@ export const blockchainIndex = {
     ['https://dmc.mydefichain.com/testnet', 'https://dmc01.mydefichain.com/testnet'],
     'DFI',
     10,
-    'https://testnet3-dmc.mydefichain.com:8445/',
+    'https://blockscout.testnet.ocean.jellyfishsdk.com/',
   ),
   DMC_MAINNET: new BlockchainDefinition(
     'dmc-mainnet',
@@ -74,7 +77,7 @@ export const blockchainIndex = {
     ['https://dmc.mydefichain.com/mainnet', 'https://dmc01.mydefichain.com/mainnet'],
     'DFI',
     5,
-    'https://mainnet-dmc.mydefichain.com:8441/',
+    'https://blockscout.mainnet.ocean.jellyfishsdk.com/',
   ),
 };
 

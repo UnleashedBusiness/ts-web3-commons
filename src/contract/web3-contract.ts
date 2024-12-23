@@ -183,6 +183,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
             target: contractAddress,
             getData: () => this.getRunMethodDataMulti((contract) => fetchMethod(contract, EmptyAddress)),
             execute: () => this.runMethodConnectedMulti(contractAddress, fetchMethod, validation, getValue, getGas),
+            estimateGas: () => this.runMethodGasEstimateMulti(contractAddress, fetchMethod, getValue)
         };
     }
 
@@ -338,7 +339,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
 
 export class MethodRunnable {
     public target: string = '';
-    public execute: () => Promise<void> = async () => {
-    };
+    public execute: () => Promise<void> = async () => {};
     public getData: () => Promise<string> = async () => '';
+    public estimateGas: () => Promise<BigNumber> = async () => bn_wrap(0);
+
 }

@@ -316,7 +316,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
             value: BigInt(value.toFixed()),
         };
         const estimate = await this.toolkit.web3Connection
-            .getReadOnlyClient(this.walletConnection.blockchain)
+            .getReadOnlyClient(config)
             .estimateGas(tx);
 
         return bn_wrap(estimate);

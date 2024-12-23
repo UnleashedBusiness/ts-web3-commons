@@ -165,7 +165,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                 return Promise.resolve(callback!(decodeMethodReturn(call.definition, response) as T));
             }, onError !== undefined ? async reason => Promise.resolve(onError!(reason)) : undefined);
         } else {
-            let client = this.walletConnection.getWeb3ReadOnly(config);
+            let client = this.toolkit.web3Connection.getWeb3ReadOnly(config);
             return client.eth.call(jsonRpcCall.params![0] as TransactionCall, jsonRpcCall.params![1] as BlockNumberOrTag)
                 .then(response => decodeMethodReturn(call.definition, response) as T)
                 .catch((error: any) => console.log(error));

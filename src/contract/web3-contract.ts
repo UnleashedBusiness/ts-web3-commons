@@ -183,7 +183,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
             target: contractAddress,
             getData: () => this.getRunMethodDataMulti((contract) => fetchMethod(contract, EmptyAddress)),
             execute: () => this.runMethodConnectedMulti(contractAddress, fetchMethod, validation, getValue, getGas),
-            estimateGas: () => this.runMethodGasEstimateMulti(contractAddress, fetchMethod, getValue)
+            estimateGas: (config: BlockchainDefinition, from?: string) => this.runMethodGasEstimateMulti(config, contractAddress, fetchMethod, from, getValue)
         };
     }
 
@@ -211,7 +211,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
                 const estimateGas =
                     getGas !== undefined
                         ? await getGas()
-                        : await this.runMethodGasEstimateMulti(contractAddress, fetchMethod, getValue);
+                        : await this.runMethodGasEstimateMulti(this.walletConnection.blockchain, contractAddress, fetchMethod, this.walletConnection.accounts[0], getValue);
 
                 const tx = {
                     chain: SUPPORTED_WAGMI_CHAINS.filter((x) => x.id === this.walletConnection.blockchain.networkId).pop(),
@@ -299,21 +299,23 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     }
 
     protected async runMethodGasEstimateMulti(
+        config: BlockchainDefinition,
         contractAddress: string,
         fetchMethod: (contract: any, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
+        from?: string,
         getValue?: () => Promise<BigNumber>,
     ): Promise<BigNumber> {
         const value = getValue ? await getValue() : new BigNumber(0);
-        const method = await fetchMethod(this._contract, this.walletConnection.accounts[0]);
+        const method = await fetchMethod(this._contract, from ?? EmptyAddress);
 
         const tx = {
-            chain: SUPPORTED_WAGMI_CHAINS.filter((x) => x.id === this.walletConnection.blockchain.networkId).pop(),
-            account: this.walletConnection.accounts[0],
+            chain: SUPPORTED_WAGMI_CHAINS.filter((x) => x.id === config.networkId).pop(),
+            account: (from ?? EmptyAddress) as `0x${string}`,
             to: contractAddress as `0x${string}`,
             data: method.encodeABI() as `0x${string}`,
             value: BigInt(value.toFixed()),
         };
-        const estimate = await this.walletConnection
+        const estimate = await this.toolkit.web3Connection
             .getReadOnlyClient(this.walletConnection.blockchain)
             .estimateGas(tx);
 
@@ -341,6 +343,5 @@ export class MethodRunnable {
     public target: string = '';
     public execute: () => Promise<void> = async () => {};
     public getData: () => Promise<string> = async () => '';
-    public estimateGas: () => Promise<BigNumber> = async () => bn_wrap(0);
-
+    public estimateGas: (config: BlockchainDefinition, from?: string) => Promise<BigNumber> = async () => bn_wrap(0);
 }

@@ -1,0 +1,57 @@
+import {ec} from "elliptic";
+import KeyPair = ec.KeyPair;
+import type {ConnectedWalletInterface} from "./connected-wallet.interface.js";
+import type {ShardedClient, ShardPutTransactionResponse} from "../client/sharded-client.js";
+import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
+import {TransactionSerializer} from "../utils/transaction.serializer.js";
+import {TransactionClient} from "../client/transaction-client.js";
+import {CryptoUtils} from "../utils/crypto.utils.js";
+import { BigEndianByteOutput } from "@secata-public/bitmanipulation-ts";
+import {BigNumber} from "bignumber.js";
+
+export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
+  private readonly transactionSerializer: TransactionSerializer = new TransactionSerializer();
+  constructor(
+      public readonly address: string,
+      public readonly keyPair: KeyPair,
+  ) {
+  }
+
+  public async signAndSendTransaction(client: ShardedClient, payload: TransactionPayload<Rpc>, cost: string | number | undefined = 0): Promise<ShardPutTransactionResponse> {
+    let accountData = await client.getAccountData(this.address);
+    if (accountData == null) {
+      throw new Error("Account data was null");
+    }
+
+    const serializedTx = this.transactionSerializer.serialize(
+        {
+          cost: String(cost),
+          nonce: accountData.nonce,
+          validTo: String(new Date().getTime() + TransactionClient.TRANSACTION_TTL),
+        },
+        payload
+    );
+    const hash = CryptoUtils.hashBuffers([
+      serializedTx,
+      BigEndianByteOutput.serialize((out) => out.writeString("Partisia Blockchain Testnet")),
+    ]);
+    const signature = this.keyPair.sign(hash);
+    const signatureBuffer = CryptoUtils.signatureToBuffer({
+      s: new BigNumber(signature.s.toString("hex"), 16),
+      r: new BigNumber(signature.r.toString("hex"), 16),
+      recoveryParam: signature.recoveryParam
+    });
+
+    const transactionPayload = Buffer.concat([signatureBuffer, serializedTx]);
+    let txPointer = await client.putTransaction(transactionPayload);
+    if (txPointer != null) {
+      return {
+        putSuccessful: true,
+        shard: txPointer.destinationShardId,
+        transactionHash: txPointer.identifier,
+      };
+    } else {
+      return {putSuccessful: false};
+    }
+  }
+}

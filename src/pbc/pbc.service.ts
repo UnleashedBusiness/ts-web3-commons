@@ -8,6 +8,7 @@ import type {DefaultContractSerialization} from "./dto/contract-data.dto.js";
 import type {ConnectedWalletInterface} from "./wallet-connection/connected-wallet.interface.js";
 import {TransactionClient} from "./client/transaction-client.js";
 import type {FailureCause} from "./dto/transaction-data.dto.js";
+import {AvlClient} from "./client/avl-client.js";
 
 export class PartisiaBlockchainService {
     constructor(
@@ -55,6 +56,32 @@ export class PartisiaBlockchainService {
         }
 
         return view(Object.fromEntries(state.fieldsMap) as Record<string, ScValue>, loadedTrees, namedTypes);
+    }
+
+    public async fetchAVLTreeValueByKey<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, treeId: number, key: Buffer, view: (value: Buffer, namedTypes: Record<string, NamedTypeSpec>) => R): Promise<R | undefined> {
+        const avlClient = new AvlClient(
+            chainDefinition.rpcList[0],
+            chainDefinition.shards,
+        );
+        const client = new ShardedClient(
+            chainDefinition.rpcList[0],
+            chainDefinition.shards,
+        );
+
+        let data = await client.getContractData<DefaultContractSerialization>(contractAddress, true);
+        let state_abi = new AbiParser(Buffer.from(abi_content, 'base64')).parseAbi();
+        let isZk = typeof (data!.serializedContract as any)["attestations"] !== 'undefined';
+        let contractState = (isZk ? (data!.serializedContract as any).openState.openState : data!.serializedContract.state).data;
+        let reader = new StateReader(Buffer.from(contractState, "base64"), state_abi.contract);
+
+        let namedTypes: any = {};
+        //@ts-ignore
+        for (let type of reader.namedTypes) {
+            namedTypes[type.name] = type;
+        }
+        let value = await avlClient.getContractStateAvlValue(contractAddress, treeId, key);
+
+        return value !== undefined ? view(value, namedTypes) : value;
     }
 
     public async send(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {

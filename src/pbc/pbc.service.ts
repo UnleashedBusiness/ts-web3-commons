@@ -58,7 +58,7 @@ export class PartisiaBlockchainService {
         return view(Object.fromEntries(state.fieldsMap) as Record<string, ScValue>, loadedTrees, namedTypes);
     }
 
-    public async fetchAVLTreeValueByKey<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, treeId: number, key: Buffer, view: (value: Buffer, namedTypes: Record<string, NamedTypeSpec>) => R): Promise<R | undefined> {
+    public async fetchAVLTreeValueByKey<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, treeId: number, key: Buffer, view: (valueReader: StateReader, namedTypes: Record<string, NamedTypeSpec>) => R): Promise<R | undefined> {
         const avlClient = new AvlClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
@@ -81,7 +81,7 @@ export class PartisiaBlockchainService {
         }
         let value = await avlClient.getContractStateAvlValue(contractAddress, treeId, key);
 
-        return value !== undefined ? view(value, namedTypes) : value;
+        return value !== undefined ? view(new StateReader(value, state_abi.contract), namedTypes) : value;
     }
 
     public async send(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {

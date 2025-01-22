@@ -5,9 +5,8 @@ import type {ShardedClient, ShardPutTransactionResponse} from "../client/sharded
 import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
 import {TransactionSerializer} from "../utils/transaction.serializer.js";
 import {TransactionClient} from "../client/transaction-client.js";
-import {CryptoUtils} from "../utils/crypto.utils.js";
 import { BigEndianByteOutput } from "@secata-public/bitmanipulation-ts";
-import {BigNumber} from "bignumber.js";
+import {CryptoUtils} from "@partisiablockchain/zk-client";
 
 export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
   private readonly transactionSerializer: TransactionSerializer = new TransactionSerializer();
@@ -36,11 +35,7 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
       BigEndianByteOutput.serialize((out) => out.writeString("Partisia Blockchain Testnet")),
     ]);
     const signature = this.keyPair.sign(hash);
-    const signatureBuffer = CryptoUtils.signatureToBuffer({
-      s: new BigNumber(signature.s.toString("hex"), 16),
-      r: new BigNumber(signature.r.toString("hex"), 16),
-      recoveryParam: signature.recoveryParam
-    });
+    const signatureBuffer = CryptoUtils.signatureToBuffer(signature);
 
     const transactionPayload = Buffer.concat([signatureBuffer, serializedTx]);
     let txPointer = await client.putTransaction(transactionPayload);

@@ -1,4 +1,4 @@
-import {BigNumber} from "bignumber.js";
+import {BN} from "@partisiablockchain/abi-client";
 
 export class BufferWriterUtils {
     private buffer: Buffer;
@@ -13,12 +13,12 @@ export class BufferWriterUtils {
         this.appendBuffer(buffer);
     };
 
-    public readonly writeLongBE = (long: BigNumber): void => {
+    public readonly writeLongBE = (long: BN): void => {
         this.writeNumberBE(long, 8);
     };
 
-    public readonly writeNumberBE = (num: BigNumber, byteCount: number): void => {
-        const buffer = Buffer.from(Buffer.from(num.toString(16), "hex"), 0, byteCount);
+    public readonly writeNumberBE = (num: BN, byteCount: number): void => {
+        const buffer = num.toTwos(byteCount * 8).toArrayLike(Buffer, "be", byteCount);
         this.appendBuffer(buffer);
     };
 

@@ -1,6 +1,6 @@
 import type {Rpc, TransactionInner, TransactionPayload} from "../dto/transaction-data.dto.js";
 import {BufferWriterUtils} from "./buffer-writer.utils.js";
-import {BigNumber} from "bignumber.js";
+import {BN} from "bn.js";
 
 export class TransactionSerializer {
     public serialize(
@@ -9,12 +9,16 @@ export class TransactionSerializer {
     ): Buffer {
         const bufferWriter = new BufferWriterUtils();
 
-        bufferWriter.writeLongBE(new BigNumber(inner.nonce));
-        bufferWriter.writeLongBE(new BigNumber(inner.validTo));
-        bufferWriter.writeLongBE(new BigNumber(inner.cost));
+        this.serializeTransactionInner(bufferWriter, inner);
 
         bufferWriter.writeHexString(data.address);
         bufferWriter.writeDynamicBuffer(data.rpc);
         return bufferWriter.toBuffer();
+    }
+
+    private serializeTransactionInner(bufferWriter: BufferWriterUtils, inner: TransactionInner) {
+        bufferWriter.writeLongBE(new BN.BN(inner.nonce));
+        bufferWriter.writeLongBE(new BN.BN(inner.validTo));
+        bufferWriter.writeLongBE(new BN.BN(inner.cost));
     }
 }

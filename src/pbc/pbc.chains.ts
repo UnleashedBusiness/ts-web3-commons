@@ -8,6 +8,7 @@ export class ChainDefinition {
             WASMDeploy: string;
             ZKDeploy: string;
         },
+        public readonly explorer: string
     ) {
     }
 }
@@ -22,6 +23,7 @@ export class PBCChain {
             WASMDeploy: "0197a0e238e924025bad144aa0c4913e46308f9a4d",
             ZKDeploy: "018bc1ccbb672b87710327713c97d43204905082cb",
         },
+        "https://browser.testnet.partisiablockchain.com/"
     );
     public static readonly MAINNET = new ChainDefinition(
         8500,
@@ -32,6 +34,7 @@ export class PBCChain {
             WASMDeploy: "",
             ZKDeploy: "",
         },
+        "https://browser.partisiablockchain.com/"
     );
 }
 

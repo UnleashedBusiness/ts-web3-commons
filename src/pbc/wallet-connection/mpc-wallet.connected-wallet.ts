@@ -11,7 +11,8 @@ import {TransactionClient} from "../client/transaction-client.js";
 
 export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
     private readonly transactionSerializer: TransactionSerializer = new TransactionSerializer();
-    private partisiaSdk?: PartisiaSdk.default;
+    // @ts-ignore
+    private partisiaSdk?: PartisiaSdk;
     private connection?: ISdkConnection;
 
     constructor() {
@@ -22,7 +23,8 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
     }
 
     public async connect(): Promise<void> {
-        this.partisiaSdk = new PartisiaSdk.default();
+        // @ts-ignore
+        this.partisiaSdk = new PartisiaSdk();
         this.partisiaSdk!.connect({
             permissions: [PermissionTypes.SIGN],
             dappName: "",

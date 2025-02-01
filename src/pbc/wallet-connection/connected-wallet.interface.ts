@@ -20,4 +20,7 @@ export interface ConnectedWalletInterface {
     payload: TransactionPayload<Rpc>,
     cost?: string | number
   ) => Promise<ShardPutTransactionResponse>;
+
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
 }

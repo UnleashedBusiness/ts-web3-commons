@@ -17,6 +17,14 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
     ) {
     }
 
+    async connect(): Promise<void> {
+        // ignored
+    }
+
+    async disconnect(): Promise<void> {
+        // ignored
+    }
+
     public async signAndSendTransaction(client: ShardedClient, payload: TransactionPayload<Rpc>, cost: string | number | undefined = 0): Promise<ShardPutTransactionResponse> {
         let accountData = await client.getAccountData(this.address);
         if (accountData == null) {

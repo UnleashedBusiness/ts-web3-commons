@@ -42,3 +42,6 @@ export const PBCChainsIndex: Record<string, ChainDefinition> = {
     TESTNET: PBCChain.TESTNET,
     MAINNET: PBCChain.MAINNET,
 };
+
+
+export const EmptyPBCAddress = '000000000000000000000000000000000000000000';

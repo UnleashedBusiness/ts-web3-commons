@@ -34,7 +34,8 @@
   },
   "optionalDependencies": {
     "ethers": ">=6.0.0",
-    "@nomicfoundation/hardhat-ethers": "*"
+    "@nomicfoundation/hardhat-ethers": "*",
+    "partisia-blockchain-applications-sdk": ">=0.1.4"
   },
   "devDependencies": {
     "@types/node": "^20.6.3",

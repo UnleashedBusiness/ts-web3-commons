@@ -4,7 +4,7 @@ import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
 import {TransactionSerializer} from "../utils/transaction.serializer.js";
 import {EmptyPBCAddress} from "../pbc.chains.js";
 import {TransactionClient} from "../client/transaction-client.js";
-import type {ISdkConnection} from "./mpc-wallet/sdk.js";
+import {type ISdkConnection, PartisiaSdk} from "./mpc-wallet/sdk.js";
 import {PermissionTypes} from "./mpc-wallet/sdk-listeners.js";
 
 

@@ -28,6 +28,9 @@ export * from "./pbc/client/sharded-client.js";
 export * from "./pbc/client/transaction-client.js";
 export * from "./pbc/wallet-connection/connected-wallet.interface.js";
 export * from "./pbc/wallet-connection/private-key.connected-wallet.js";
+export * from "./pbc/wallet-connection/mpc-wallet.connected-wallet.js";
+export * from "./pbc/wallet-connection/mpc-wallet/sdk.js";
+export * from "./pbc/wallet-connection/mpc-wallet/sdk-listeners.js";
 
 export * from './storage/nft-storage.client.js'
 export * from './storage/web3-storage-client.interface.js'

@@ -2,11 +2,10 @@ import type {ConnectedWalletInterface} from "./connected-wallet.interface.js";
 import type {ShardedClient, ShardPutTransactionResponse} from "../client/sharded-client.js";
 import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
 import {TransactionSerializer} from "../utils/transaction.serializer.js";
-import PartisiaSdk from "partisia-blockchain-applications-sdk";
-import type {ISdkConnection} from "partisia-blockchain-applications-sdk/lib/sdk.js";
 import {EmptyPBCAddress} from "../pbc.chains.js";
-import {PermissionTypes} from "partisia-blockchain-applications-sdk/lib/sdk-listeners.js";
 import {TransactionClient} from "../client/transaction-client.js";
+import type {ISdkConnection} from "./mpc-wallet/sdk.js";
+import {PermissionTypes} from "./mpc-wallet/sdk-listeners.js";
 
 
 export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
@@ -25,7 +24,8 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
     public async connect(): Promise<void> {
         // @ts-ignore
         this.partisiaSdk = new PartisiaSdk();
-        this.partisiaSdk!.connect({
+
+        await this.partisiaSdk!.connect({
             permissions: [PermissionTypes.SIGN],
             dappName: "",
             chainId: ""

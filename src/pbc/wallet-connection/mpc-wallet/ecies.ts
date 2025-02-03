@@ -1,9 +1,8 @@
-import * as CryptoJS from "crypto-js";
-
-const EC = require('elliptic').ec;
+import CryptoJS from "crypto-js";
 import {Buffer} from "buffer";
-import {ec} from "elliptic";
-import KeyPair = ec.KeyPair;
+import {ec as Elliptic, ec as EC} from "elliptic";
+
+const ec = new Elliptic('secp256k1')
 
 const optionsDefault = {
     hashName: 'sha256',
@@ -21,20 +20,22 @@ const optionsDefault = {
 
 // E
 function symmetricEncrypt(iv: Buffer, key: Buffer, plaintext: Buffer) {
-    return Buffer.from(CryptoJS.AES.encrypt(
+    const encryptionResult = CryptoJS.AES.encrypt(
         CryptoJS.lib.WordArray.create(plaintext),
         CryptoJS.lib.WordArray.create(key),
         {
             mode: CryptoJS.mode.ECB,
             iv: CryptoJS.lib.WordArray.create(iv),
         }
-    ).toString(CryptoJS.format.Hex), "hex");
+    );
+
+    return Buffer.from(encryptionResult.ciphertext.toString(CryptoJS.enc.Hex), "hex");
 }
 
 // E-1
 function symmetricDecrypt(iv: Buffer, key: Buffer, cipherText: Buffer) {
     return Buffer.from(CryptoJS.AES.decrypt(
-        cipherText.toString("hex"),
+        cipherText.toString("base64"),
         CryptoJS.lib.WordArray.create(key),
         {
             mode: CryptoJS.mode.ECB,
@@ -58,12 +59,12 @@ export const encrypt = (publicKey: Buffer | string, message: Buffer | string, op
     message = typeof message === 'string' ? Buffer.from(message, 'utf8') : message
 
     options = {...optionsDefault, ...options}
-    const ec = new EC('secp256k1');
 
+    const ecdh = ec.genKeyPair();
     // R
-    const R = Buffer.from(ec.genKeyPair().getPublic().encode("array", false));
+    const R = Buffer.from(ecdh.getPublic().encode("array", false));
     // S
-    const sharedSecret = Buffer.from(ec.keyFromPublic(publicKey).derive(KeyPair.fromPublic(ec, publicKey)).toString("hex"), "hex");
+    const sharedSecret = Buffer.from(ecdh.derive(ec.keyFromPublic(publicKey).getPublic()).toString(16), "hex");
 
     // uses KDF to derive a symmetric encryption and a MAC keys:
     // Ke || Km = KDF(S || S1)
@@ -97,7 +98,7 @@ function equalConstTime(b1: Buffer, b2: Buffer) {
     return result === 0
 }
 
-export const decrypt = (ecdh: KeyPair, message: Buffer, options: any = {}) => {
+export const decrypt = (ecdh: EC.KeyPair, message: Buffer, options: any = {}) => {
     options = {...optionsDefault, ...options}
 
     const publicKeyLength = ecdh.getPublic().encode("array", false).length
@@ -109,7 +110,7 @@ export const decrypt = (ecdh: KeyPair, message: Buffer, options: any = {}) => {
     const messageTag = message.subarray(message.length - options.macLength)
 
     // S
-    const sharedSecret = Buffer.from(ecdh.derive(KeyPair.fromPublic(ecdh.ec, R).getPublic()).toString("hex"), "hex");
+    const sharedSecret = Buffer.from(ecdh.derive(ec.keyFromPublic(R).getPublic()).toString(16), "hex");
 
     // derives keys the same way as Alice did:
     // Ke || Km = KDF(S || S1)

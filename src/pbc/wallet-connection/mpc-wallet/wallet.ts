@@ -1,9 +1,9 @@
-import * as bip32 from 'bip32'
 import * as bip39 from 'bip39'
 import {type BNInput, ec as Elliptic, type SignatureInput} from 'elliptic'
 import {decrypt, encrypt} from './ecies.js'
 import {Buffer} from "buffer";
-import KeyPair = Elliptic.KeyPair;
+import {HDKey} from "@scure/bip32";
+import CryptoJS from "crypto-js";
 
 const ec = new Elliptic('secp256k1')
 
@@ -58,10 +58,10 @@ export const entropyToMnemonic = (entropy: Uint8Array | Buffer | string): string
     return bip39.entropyToMnemonic(Buffer.from(buf))
 }
 
-function getChildNodeByPath(node: bip32.BIP32Interface, aryPath: string[]): bip32.BIP32Interface {
-    let child: bip32.BIP32Interface = node
+function getChildNodeByPath(node: HDKey, aryPath: string[]): HDKey {
+    let child: HDKey = node
     while (child.depth < aryPath.length - 1) {
-        child = child.derivePath(aryPath[child.depth + 1])
+        child = child.deriveChild(parseInt(aryPath[child.depth + 1]))
     }
     return child
 }
@@ -74,24 +74,24 @@ export function walletFromXY(eccPoint: { x: string; y: string }, compress: boole
     }
 }
 export function walletFromXPub(xpub: string, idx: number = 0) {
-    const node = bip32.fromBase58(xpub)
+    const node = HDKey.fromExtendedKey(xpub)
     const aryPath = `${PathHD}/${idx}`.split('/')
     const child = getChildNodeByPath(node, aryPath)
     return {
         // privateKey: null,
-        publicKey: child.publicKey.toString('hex'),
-        address: publicKeyToAddress(child.publicKey),
+        publicKey: Buffer.from(child.publicKey!).toString('hex'),
+        address: publicKeyToAddress(Buffer.from(child.publicKey!)),
         path: aryPath.join('/'),
     }
 }
 export function walletFromXPrv(xprv: string, idx: number = 0) {
-    const node = bip32.fromBase58(xprv)
+    const node = HDKey.fromExtendedKey(xprv)
     const aryPath = `${PathHD}/${idx}`.split('/')
     const child = getChildNodeByPath(node, aryPath)
     return {
-        privateKey: child.privateKey!.toString('hex'),
-        publicKey: child.publicKey.toString('hex'),
-        address: publicKeyToAddress(child.publicKey),
+        privateKey: Buffer.from(child.privateKey!).toString('hex'),
+        publicKey: Buffer.from(child.publicKey!).toString('hex'),
+        address: publicKeyToAddress(Buffer.from(child.publicKey!)),
         path: aryPath.join('/'),
     }
 }
@@ -102,10 +102,10 @@ export function getWalletExtended(mnemonic: string | string[], passphrase: strin
         throw new Error('Invalid seed')
     }
 
-    const node = bip32.fromSeed(seed)
+    const node = HDKey.fromMasterSeed(seed)
     const pathDerivation = PathHD.split('/').slice(0, -1).slice(0, -1).join('/')
-    const privExtended44 = node.derivePath(pathDerivation).deriveHardened(0).toBase58()
-    const pubExtended44 = node.derivePath(pathDerivation).deriveHardened(0).neutered().toBase58()
+    const privExtended44 = node.derive(pathDerivation).deriveChild(0).privateExtendedKey
+    const pubExtended44 = node.derive(pathDerivation).deriveChild(0).publicExtendedKey
 
     return {
         xpub: pubExtended44,
@@ -236,7 +236,7 @@ export function decryptMessage(privateKey: Buffer | string, encrypt: Buffer | st
     }
 
     const encryptBuffer: Buffer = typeof encrypt === 'string' ? Buffer.from(encrypt, 'hex') : encrypt
-    return decrypt(KeyPair.fromPrivate(ec, privBuffer), encryptBuffer)
+    return decrypt(ec.keyFromPrivate(privBuffer), encryptBuffer)
 }
 export function signTransaction(data: BNInput, privateKey: string): Buffer {
     const keyPair = privateKeyToKeypair(privateKey)

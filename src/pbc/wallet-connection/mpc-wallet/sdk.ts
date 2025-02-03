@@ -1,7 +1,8 @@
 import {PermissionTypes, sdkListenTabEvent, sdkOpenPopupTab} from './sdk-listeners.js'
-import {randomBytes} from "ethers";
 import {Buffer} from "buffer";
 import {decryptMessage, encryptMessage, entropyToMnemonic, getKeyPairHD} from "./wallet.js";
+import {randomBytes} from "ethers";
+import {deserializeBSONWithoutOptimiser} from "@deepkit/bson";
 
 declare global {
     interface Window {
@@ -20,7 +21,7 @@ export class PartisiaSdk {
     private _connection?: ISdkConnection = undefined
 
     constructor(args: { seed?: Buffer | string; connection?: ISdkConnection } = {}) {
-        const { seed, connection } = args
+        const {seed, connection} = args
         if (seed) {
             this.seed = typeof seed === 'string' ? seed : Buffer.from(seed).toString('hex')
             if (connection) {
@@ -49,22 +50,26 @@ export class PartisiaSdk {
         }
 
         const popupWindow = await sdkOpenPopupTab<{ tabId: number; box: string }>(payloadOpenConfirm)
-        const { payload } = await sdkListenTabEvent<{ tabId: number; payload: string }>(popupWindow.tabId)
+        const {payload} = await sdkListenTabEvent<{ tabId: number; payload: string }>(popupWindow.tabId)
 
-        const account = JSON.parse(decryptMessage(hd.privateKey, payload).toString("ascii")) as {
-            address: string
-            pub: string
-        }
-        this._connection = { account, popupWindow }
+        const decrypted = decryptMessage(hd.privateKey, payload);
+
+        const account = deserializeBSONWithoutOptimiser(decrypted);
+        this._connection = {account, popupWindow}
     }
 
-    async signMessage(args: { contract?: string, payload: string, payloadType: 'utf8' | 'hex' | 'hex_payload', dontBroadcast?: boolean }) {
+    async signMessage(args: {
+        contract?: string,
+        payload: string,
+        payloadType: 'utf8' | 'hex' | 'hex_payload',
+        dontBroadcast?: boolean
+    }) {
         if (!this.isConnected) {
             throw new Error('You must connect the Dapp first');
         }
 
-        const { payload, payloadType, contract, dontBroadcast } = args
-        const obj = { payload, payloadType, dontBroadcast }
+        const {payload, payloadType, contract, dontBroadcast} = args
+        const obj = {payload, payloadType, dontBroadcast}
         if (payloadType === 'hex_payload') {
             if (typeof contract !== 'string' || contract?.length === 42) {
                 throw new Error('must supply Contract for hex_payload type');
@@ -86,13 +91,13 @@ export class PartisiaSdk {
         const popupData = await sdkListenTabEvent<{ tabId: number; payload: string, hd_idx: number }>(popupSign.tabId)
         const hdWallet = getKeyPairHD(entropyToMnemonic(this.seed), popupData.hd_idx)
 
-        return JSON.parse(decryptMessage(Buffer.from(hdWallet.privateKey, 'hex'), popupData.payload).toString("ascii")) as {
+        return deserializeBSONWithoutOptimiser(decryptMessage(Buffer.from(hdWallet.privateKey, 'hex'), popupData.payload)) as {
             signature: string
             serializedTransaction: string
             digest: string
             trxHash: string
             isFinalOnChain: boolean
-        }
+        };
     }
 
     get isConnected() {

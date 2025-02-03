@@ -27,8 +27,8 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
 
         await this.partisiaSdk!.connect({
             permissions: [PermissionTypes.SIGN],
-            dappName: "",
-            chainId: ""
+            dappName: "Crypto Factor Testnet",
+            chainId: "Partisia Blockchain Testnet"
         })
 
         this.connection = this.partisiaSdk.connection;
@@ -42,7 +42,7 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
     }
 
     public async signAndSendTransaction(client: ShardedClient, payload: TransactionPayload<Rpc>, cost: string | number | undefined = 0): Promise<ShardPutTransactionResponse> {
-        return client.getAccountData(this.address).then(async (accountData) => {
+        return client.getAccountData(this.address).then(async (accountData: any) => {
             if (accountData == null) {
                 throw new Error("Account data was null");
             }

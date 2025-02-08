@@ -42,7 +42,7 @@ export function fromPBCChainToBlockchainDefinition(chain: ChainDefinition, block
         blockTime,
         chain.explorer,
         true,
-        {"Shards": chain.shards}
+        {"Shards": chain.shards, "SystemContracts": chain.systemContracts}
     );
 }
 

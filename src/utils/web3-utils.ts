@@ -7,7 +7,6 @@ export class Web3Utils {
     }
 
     static web3IsEmptyAddress(target: string | null | undefined): boolean {
-        return target !== null && target !== undefined && Web3Utils.web3AddressEq(target, EmptyAddress);
+        return target === null || target === undefined || Web3Utils.web3AddressEq(target, EmptyAddress);
     }
-
 }

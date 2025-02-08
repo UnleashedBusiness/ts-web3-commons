@@ -1,3 +1,5 @@
+import {type BlockchainDefinition, fromPBCChainToBlockchainDefinition} from "../utils/chains.js";
+
 export class ChainDefinition {
     constructor(
         public readonly id: number,
@@ -10,6 +12,21 @@ export class ChainDefinition {
         },
         public readonly explorer: string
     ) {
+    }
+
+    public static fromBlockchainDefinition(chain: BlockchainDefinition): ChainDefinition {
+        return new ChainDefinition(
+            chain.networkId,
+            chain.networkId === PBCChain.TESTNET.id ? PBCChain.TESTNET.name : PBCChain.MAINNET.name,
+            chain.networkRPC,
+            chain.extra?.['Shards'] ?? [],
+            chain.extra?.['SystemContracts'] ?? {},
+            chain.explorerUrl ?? ""
+        )
+    }
+
+    public toBlockchainDefinition(): BlockchainDefinition {
+        return fromPBCChainToBlockchainDefinition(this, 1)
     }
 }
 

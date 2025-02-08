@@ -5,6 +5,7 @@ import type {ChainDefinition} from "./pbc.chains.js";
 
 export type PBCCallDelegate<R> = (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<R>;
 export type PBCMultiCallDelegate = (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>;
+export type PBCMultiCallDelegateWithTrees = [PBCMultiCallDelegate, number[]];
 
 export function ToMultiCall<R>(call: PBCCallDelegate<R>, callback: (value: R) => Promise<any>): PBCMultiCallDelegate {
     return async (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => {
@@ -15,10 +16,10 @@ export function ToMultiCall<R>(call: PBCCallDelegate<R>, callback: (value: R) =>
 
 export interface PBCCallDefinition<R> {
     executeCall(chain: ChainDefinition, contractAddress: string): Promise<R>;
-    buildMultiCall(callback: (value: R) => Promise<any>): PBCMultiCallDelegate;
+    buildMultiCall(callback: (value: R) => Promise<any>): PBCMultiCallDelegateWithTrees;
 }
 
 export interface PBCInstanceCallDefinition<R> {
     executeCall(): Promise<R>;
-    buildMultiCall(callback: (value: R) => Promise<any>): PBCMultiCallDelegate;
+    buildMultiCall(callback: (value: R) => Promise<any>): PBCMultiCallDelegateWithTrees;
 }

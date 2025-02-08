@@ -9,6 +9,7 @@ import type {ConnectedWalletInterface} from "./wallet-connection/connected-walle
 import {TransactionClient} from "./client/transaction-client.js";
 import type {FailureCause} from "./dto/transaction-data.dto.js";
 import {AvlClient} from "./client/avl-client.js";
+import type {PBCCallDelegate} from "./pbc.types.js";
 
 export class PartisiaBlockchainService {
     constructor(
@@ -16,95 +17,16 @@ export class PartisiaBlockchainService {
     ) {
     }
 
-    public async call<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, view: (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<R>, loadAvlTreeIndexes: number[] = []): Promise<R> {
-        const client = new ShardedClient(
-            chainDefinition.rpcList[0],
-            chainDefinition.shards,
+    public async call<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, view: PBCCallDelegate<R>, loadAvlTreeIndexes: number[] = []): Promise<R> {
+        return this.fetchContractState(chainDefinition, abi_content, contractAddress, loadAvlTreeIndexes).then(
+            args => view(...args)
         );
-
-        let data = await client.getContractData<DefaultContractSerialization>(contractAddress, true);
-        let state_abi = new AbiParser(Buffer.from(abi_content, 'base64')).parseAbi();
-        let isZk = typeof (data!.serializedContract as any)["attestations"] !== 'undefined';
-        let contractState = (isZk ? (data!.serializedContract as any).openState.openState : data!.serializedContract.state).data;
-        let reader = new StateReader(Buffer.from(contractState, "base64"), state_abi.contract);
-        let state = reader.readState();
-
-        let namedTypes: any = {};
-        //@ts-ignore
-        for (let type of reader.namedTypes) {
-            namedTypes[type.name] = type;
-        }
-        //@ts-ignore
-        //console.log(reader.namedTypes.filter(x => x.name === "Attested").pop());
-
-        let loadedTrees: AvlTreeBuilderMap = {};
-        let treesIndexed = (isZk ? (data!.serializedContract as any).openState : data!.serializedContract).avlTrees;
-
-        for (let index of loadAvlTreeIndexes) {
-            let serializedTree = treesIndexed[index].value.avlTree;
-            // @ts-ignore
-            loadedTrees[index] = (keySpec: TypeSpec, valueType: TypeSpec | StructTypeSpec, isNamedValue: boolean) => {
-                let deserializedTree: { key: ScValue, value: ScValue }[] = [];
-                for (let kvPair of serializedTree) {
-                    const key = new StateReader(Buffer.from(kvPair.key.data.data, "base64"), state_abi.contract).readGeneric(keySpec);
-                    const valueReader = new StateReader(Buffer.from(kvPair.value.data, "base64"), state_abi.contract);
-
-                    deserializedTree.push({
-                        key,
-                        value: isNamedValue ? valueReader.readStruct(valueType as StructTypeSpec) : valueReader.readGeneric(valueType as TypeSpec)
-                    });
-                }
-                return deserializedTree;
-            };
-        }
-
-        return view(Object.fromEntries(state.fieldsMap) as Record<string, ScValue>, loadedTrees, namedTypes);
     }
 
     public async callMulti(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, views: ((state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadAvlTreeIndexes: number[] = []): Promise<void> {
-        const client = new ShardedClient(
-            chainDefinition.rpcList[0],
-            chainDefinition.shards,
+        await this.fetchContractState(chainDefinition, abi_content, contractAddress, loadAvlTreeIndexes).then(
+            args => Promise.all(views.map(x => x(...args)))
         );
-
-        let data = await client.getContractData<DefaultContractSerialization>(contractAddress, true);
-        let state_abi = new AbiParser(Buffer.from(abi_content, 'base64')).parseAbi();
-        let isZk = typeof (data!.serializedContract as any)["attestations"] !== 'undefined';
-        let contractState = (isZk ? (data!.serializedContract as any).openState.openState : data!.serializedContract.state).data;
-        let reader = new StateReader(Buffer.from(contractState, "base64"), state_abi.contract);
-        let state = reader.readState();
-
-        let namedTypes: any = {};
-        //@ts-ignore
-        for (let type of reader.namedTypes) {
-            namedTypes[type.name] = type;
-        }
-        //@ts-ignore
-        //console.log(reader.namedTypes.filter(x => x.name === "Attested").pop());
-
-        let loadedTrees: AvlTreeBuilderMap = {};
-        let treesIndexed = (isZk ? (data!.serializedContract as any).openState : data!.serializedContract).avlTrees;
-
-        for (let index of loadAvlTreeIndexes) {
-            let serializedTree = treesIndexed[index].value.avlTree;
-            // @ts-ignore
-            loadedTrees[index] = (keySpec: TypeSpec, valueType: TypeSpec | StructTypeSpec, isNamedValue: boolean) => {
-                let deserializedTree: { key: ScValue, value: ScValue }[] = [];
-                for (let kvPair of serializedTree) {
-                    const key = new StateReader(Buffer.from(kvPair.key.data.data, "base64"), state_abi.contract).readGeneric(keySpec);
-                    const valueReader = new StateReader(Buffer.from(kvPair.value.data, "base64"), state_abi.contract);
-
-                    deserializedTree.push({
-                        key,
-                        value: isNamedValue ? valueReader.readStruct(valueType as StructTypeSpec) : valueReader.readGeneric(valueType as TypeSpec)
-                    });
-                }
-                return deserializedTree;
-            };
-        }
-
-        const params: [Record<string, ScValue>, AvlTreeBuilderMap, any] = [Object.fromEntries(state.fieldsMap) as Record<string, ScValue>, loadedTrees, namedTypes];
-        await Promise.all(views.map(x => x(...params)));
     }
 
     public async fetchAVLTreeValueByKey<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, treeId: number, key: Buffer, view: (valueReader: StateReader, namedTypes: Record<string, NamedTypeSpec>) => R): Promise<R | undefined> {
@@ -193,5 +115,50 @@ export class PartisiaBlockchainService {
         }
 
         return transactionResult.transactionHash;
+    }
+
+    private async fetchContractState(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, loadAvlTreeIndexes: number[] = []): Promise<[Record<string, ScValue>, AvlTreeBuilderMap, any]> {
+        const client = new ShardedClient(
+            chainDefinition.rpcList[0],
+            chainDefinition.shards,
+        );
+
+        let data = await client.getContractData<DefaultContractSerialization>(contractAddress, true);
+        let state_abi = new AbiParser(Buffer.from(abi_content, 'base64')).parseAbi();
+        let isZk = typeof (data!.serializedContract as any)["attestations"] !== 'undefined';
+        let contractState = (isZk ? (data!.serializedContract as any).openState.openState : data!.serializedContract.state).data;
+        let reader = new StateReader(Buffer.from(contractState, "base64"), state_abi.contract);
+        let state = reader.readState();
+
+        let namedTypes: any = {};
+        //@ts-ignore
+        for (let type of reader.namedTypes) {
+            namedTypes[type.name] = type;
+        }
+        //@ts-ignore
+        //console.log(reader.namedTypes.filter(x => x.name === "Attested").pop());
+
+        let loadedTrees: AvlTreeBuilderMap = {};
+        let treesIndexed = (isZk ? (data!.serializedContract as any).openState : data!.serializedContract).avlTrees;
+
+        for (let index of loadAvlTreeIndexes) {
+            let serializedTree = treesIndexed[index].value.avlTree;
+            // @ts-ignore
+            loadedTrees[index] = (keySpec: TypeSpec, valueType: TypeSpec | StructTypeSpec, isNamedValue: boolean) => {
+                let deserializedTree: { key: ScValue, value: ScValue }[] = [];
+                for (let kvPair of serializedTree) {
+                    const key = new StateReader(Buffer.from(kvPair.key.data.data, "base64"), state_abi.contract).readGeneric(keySpec);
+                    const valueReader = new StateReader(Buffer.from(kvPair.value.data, "base64"), state_abi.contract);
+
+                    deserializedTree.push({
+                        key,
+                        value: isNamedValue ? valueReader.readStruct(valueType as StructTypeSpec) : valueReader.readGeneric(valueType as TypeSpec)
+                    });
+                }
+                return deserializedTree;
+            };
+        }
+
+        return [Object.fromEntries(state.fieldsMap) as Record<string, ScValue>, loadedTrees, namedTypes];
     }
 }

@@ -31,6 +31,9 @@ export * from "./pbc/wallet-connection/private-key.connected-wallet.js";
 export * from "./pbc/wallet-connection/mpc-wallet.connected-wallet.js";
 export * from "./pbc/wallet-connection/mpc-wallet/sdk.js";
 export * from "./pbc/wallet-connection/mpc-wallet/sdk-listeners.js";
+export * from "./pbc/smart-contract/base-pbc.smart-contract.js";
+export * from "./pbc/smart-contract/pbc-contract-multi-call.js";
+export * from "./pbc/pbc.types.js";
 
 export * from './storage/nft-storage.client.js'
 export * from './storage/web3-storage-client.interface.js'

@@ -6,7 +6,7 @@ import type {ChainDefinition} from "../pbc.chains.js";
 import type {AvlTreeBuilderMap} from "../utils/avl-tree.utils.js";
 
 export abstract class BasePBCSmartContract {
-  private constructor(
+  protected constructor(
     protected readonly pbcClient: PartisiaBlockchainService,
     protected readonly abiContent: string,
   ) {

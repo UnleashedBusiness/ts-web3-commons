@@ -16,7 +16,7 @@ export class PartisiaBlockchainService {
     ) {
     }
 
-    public async call<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, view: (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => R, loadAvlTreeIndexes: number[] = []): Promise<R> {
+    public async call<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, view: (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<R>, loadAvlTreeIndexes: number[] = []): Promise<R> {
         const client = new ShardedClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
@@ -49,7 +49,10 @@ export class PartisiaBlockchainService {
                     const key = new StateReader(Buffer.from(kvPair.key.data.data, "base64"), state_abi.contract).readGeneric(keySpec);
                     const valueReader = new StateReader(Buffer.from(kvPair.value.data, "base64"), state_abi.contract);
 
-                    deserializedTree.push({key, value: isNamedValue ? valueReader.readStruct(valueType as StructTypeSpec) : valueReader.readGeneric(valueType as TypeSpec)});
+                    deserializedTree.push({
+                        key,
+                        value: isNamedValue ? valueReader.readStruct(valueType as StructTypeSpec) : valueReader.readGeneric(valueType as TypeSpec)
+                    });
                 }
                 return deserializedTree;
             };
@@ -58,7 +61,7 @@ export class PartisiaBlockchainService {
         return view(Object.fromEntries(state.fieldsMap) as Record<string, ScValue>, loadedTrees, namedTypes);
     }
 
-    public async callMulti(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, views: ((state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => void)[], loadAvlTreeIndexes: number[] = []): Promise<void> {
+    public async callMulti(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, views: ((state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadAvlTreeIndexes: number[] = []): Promise<void> {
         const client = new ShardedClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
@@ -91,19 +94,17 @@ export class PartisiaBlockchainService {
                     const key = new StateReader(Buffer.from(kvPair.key.data.data, "base64"), state_abi.contract).readGeneric(keySpec);
                     const valueReader = new StateReader(Buffer.from(kvPair.value.data, "base64"), state_abi.contract);
 
-                    deserializedTree.push({key, value: isNamedValue ? valueReader.readStruct(valueType as StructTypeSpec) : valueReader.readGeneric(valueType as TypeSpec)});
+                    deserializedTree.push({
+                        key,
+                        value: isNamedValue ? valueReader.readStruct(valueType as StructTypeSpec) : valueReader.readGeneric(valueType as TypeSpec)
+                    });
                 }
                 return deserializedTree;
             };
         }
 
         const params: [Record<string, ScValue>, AvlTreeBuilderMap, any] = [Object.fromEntries(state.fieldsMap) as Record<string, ScValue>, loadedTrees, namedTypes];
-        await Promise.all(
-            views.map(x => new Promise<void>(resolve => {
-                x(...params);
-                resolve();
-            }))
-        );
+        await Promise.all(views.map(x => x(...params)));
     }
 
     public async fetchAVLTreeValueByKey<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, treeId: number, key: Buffer, view: (valueReader: StateReader, namedTypes: Record<string, NamedTypeSpec>) => R): Promise<R | undefined> {

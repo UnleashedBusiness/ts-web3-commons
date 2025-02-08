@@ -32,6 +32,10 @@ export const U64TypeSpec: TypeSpec = {
     typeIndex: TypeIndex.u64
 }
 
+export const U128TypeSpec: TypeSpec = {
+    typeIndex: TypeIndex.u128
+}
+
 export function buildVecTypeSpec<T extends TypeSpec>(spec: T): TypeSpec {
     return {
         typeIndex: TypeIndex.Vec,

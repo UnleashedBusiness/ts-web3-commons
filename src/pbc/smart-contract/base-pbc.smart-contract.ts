@@ -38,7 +38,7 @@ export abstract class BasePBCSmartContract {
     );
   }
 
-  public buildMethodDefinition<R>(call: PBCCallDelegate<R>): PBCCallDefinition<R> {
+  public buildMethodDefinition<R>(call: PBCCallDelegate<R>, loadAvlTreeIndexes: number[] = []): PBCCallDefinition<R> {
     return {
       buildMultiCall: () => ToMultiCall(call),
       executeCall: (chain: ChainDefinition, contractAddress: string) => {
@@ -47,6 +47,7 @@ export abstract class BasePBCSmartContract {
             this.abiContent,
             contractAddress,
             call,
+            loadAvlTreeIndexes
         )
       }
     }
@@ -80,12 +81,13 @@ export class BasePBCSmartContractInstance<C extends BasePBCSmartContract> {
     return new PBCContractMultiCall(this);
   }
 
-  public buildMethodDefinition<R>(call: PBCCallDelegate<R>): PBCInstanceCallDefinition<R> {
+  public buildMethodDefinition<R>(call: PBCCallDelegate<R>, loadAvlTreeIndexes: number[] = []): PBCInstanceCallDefinition<R> {
     return {
       buildMultiCall: () => ToMultiCall(call),
       executeCall: () => {
         return this.contract.buildMethodDefinition(
             call,
+            loadAvlTreeIndexes
         ).executeCall(this.chain, this.address)
       }
     }

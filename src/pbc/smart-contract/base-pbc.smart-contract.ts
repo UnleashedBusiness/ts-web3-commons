@@ -4,6 +4,12 @@ import {PBCContractMultiCall} from "./pbc-contract-multi-call.js";
 import type {PartisiaBlockchainService} from "../pbc.service.js";
 import type {ChainDefinition} from "../pbc.chains.js";
 import type {AvlTreeBuilderMap} from "../utils/avl-tree.utils.js";
+import {
+  type PBCCallDefinition,
+  type PBCCallDelegate,
+  type PBCInstanceCallDefinition,
+  ToMultiCall
+} from "../pbc.types.js";
 
 export abstract class BasePBCSmartContract {
   protected constructor(
@@ -32,6 +38,20 @@ export abstract class BasePBCSmartContract {
     );
   }
 
+  public buildMethodDefinition<R>(call: PBCCallDelegate<R>): PBCCallDefinition<R> {
+    return {
+      buildMultiCall: () => ToMultiCall(call),
+      executeCall: (chain: ChainDefinition, contractAddress: string) => {
+        return this.pbcClient.call(
+            chain,
+            this.abiContent,
+            contractAddress,
+            call,
+        )
+      }
+    }
+  }
+
   public abstract buildInstance(chain: ChainDefinition, contractAddress: string): BasePBCSmartContractInstance<this>;
 }
 
@@ -58,5 +78,16 @@ export class BasePBCSmartContractInstance<C extends BasePBCSmartContract> {
 
   public startMultiCall(): PBCContractMultiCall<C> {
     return new PBCContractMultiCall(this);
+  }
+
+  public buildMethodDefinition<R>(call: PBCCallDelegate<R>): PBCInstanceCallDefinition<R> {
+    return {
+      buildMultiCall: () => ToMultiCall(call),
+      executeCall: () => {
+        return this.contract.buildMethodDefinition(
+            call,
+        ).executeCall(this.chain, this.address)
+      }
+    }
   }
 }

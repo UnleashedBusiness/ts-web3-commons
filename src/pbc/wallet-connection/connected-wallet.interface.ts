@@ -1,5 +1,6 @@
 import type {ShardedClient, ShardPutTransactionResponse} from "../client/sharded-client.js";
 import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
+import type {ChainDefinition} from "../pbc.chains.js";
 
 /**
  * Unified interface for connected MPC wallets.
@@ -21,6 +22,6 @@ export interface ConnectedWalletInterface {
     cost?: string | number
   ) => Promise<ShardPutTransactionResponse>;
 
-  connect(): Promise<void>;
+  connect(chain: ChainDefinition): Promise<void>;
   disconnect(): Promise<void>;
 }

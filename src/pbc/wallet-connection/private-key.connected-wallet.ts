@@ -7,6 +7,7 @@ import {TransactionSerializer} from "../utils/transaction.serializer.js";
 import {TransactionClient} from "../client/transaction-client.js";
 import {BigEndianByteOutput} from "@secata-public/bitmanipulation-ts";
 import {CryptoUtils} from "@partisiablockchain/zk-client";
+import type {ChainDefinition} from "../pbc.chains.js";
 
 export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
     private readonly transactionSerializer: TransactionSerializer = new TransactionSerializer();
@@ -17,7 +18,7 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
     ) {
     }
 
-    async connect(): Promise<void> {
+    async connect(_: ChainDefinition): Promise<void> {
         // ignored
     }
 

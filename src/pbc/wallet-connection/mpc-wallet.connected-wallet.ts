@@ -1,5 +1,5 @@
 import type {ConnectedWalletInterface} from "./connected-wallet.interface.js";
-import type {ShardedClient, ShardPutTransactionResponse} from "../client/sharded-client.js";
+import {ShardedClient, type ShardPutTransactionResponse} from "../client/sharded-client.js";
 import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
 import {TransactionSerializer} from "../utils/transaction.serializer.js";
 import {type ChainDefinition, EmptyPBCAddress, PBCChain} from "../pbc.chains.js";
@@ -14,21 +14,21 @@ export interface MPCWalletAutoConnectParameters {
 }
 
 export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
-
     private readonly transactionSerializer: TransactionSerializer = new TransactionSerializer();
     // @ts-ignore
     private partisiaSdk?: PartisiaSdk;
     private connection?: ISdkConnection;
+    private _shardedClient?: ShardedClient;
+    private _autoConnectParameters: MPCWalletAutoConnectParameters;
 
-    private readonly _autoConnectParameters: Record<number, MPCWalletAutoConnectParameters>;
-
-    get autoConnectParameters(): Record<number, MPCWalletAutoConnectParameters> {
+    get autoConnectParameters(): MPCWalletAutoConnectParameters {
         return this._autoConnectParameters;
     }
 
     constructor(
         private readonly dappName: string,
-        _autoConnectParameters: Record<number, MPCWalletAutoConnectParameters>
+        public readonly chain: ChainDefinition,
+        _autoConnectParameters: MPCWalletAutoConnectParameters
     ) {
         this._autoConnectParameters = _autoConnectParameters;
     }
@@ -37,31 +37,36 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
         return this.connection?.account.address ?? EmptyPBCAddress
     }
 
-    public async connect(chain: ChainDefinition): Promise<void> {
+    public async connect(): Promise<void> {
         // @ts-ignore
         this.partisiaSdk = new PartisiaSdk(this._autoConnectParameters[chain.id]);
         if (!this.partisiaSdk.isConnected) {
             await this.partisiaSdk!.connect({
                 permissions: [PermissionTypes.SIGN],
                 dappName: this.dappName,
-                chainId: chain.id === PBCChain.TESTNET.id ? "Partisia Blockchain Testnet" : "Partisia Blockchain"
+                chainId: this.chain.id === PBCChain.TESTNET.id ? "Partisia Blockchain Testnet" : "Partisia Blockchain"
             })
         }
 
         this.connection = this.partisiaSdk.connection;
         if (this.connection === null) {
             this.connection = undefined;
+            this._autoConnectParameters = {};
+            this._shardedClient = undefined;
         } else {
-            this._autoConnectParameters[chain.id] = {seed: Buffer.from(this.partisiaSdk.seed, "hex"), connection: this.connection}
+            this._autoConnectParameters = {seed: Buffer.from(this.partisiaSdk.seed, "hex"), connection: this.connection}
+            this._shardedClient = new ShardedClient(this.chain.rpcList[0], this.chain.shards);
         }
     }
 
     public async disconnect(): Promise<void> {
+        this._shardedClient = undefined;
+        this._autoConnectParameters = {};
         this.connection = undefined;
     }
 
-    public async signAndSendTransaction(client: ShardedClient, payload: TransactionPayload<Rpc>, cost: string | number | undefined = 0): Promise<ShardPutTransactionResponse> {
-        return client.getAccountData(this.address).then(async (accountData: any) => {
+    public async signAndSendTransaction(payload: TransactionPayload<Rpc>, cost: string | number | undefined = 0): Promise<ShardPutTransactionResponse> {
+        return this._shardedClient!.getAccountData(this.address).then(async (accountData: any) => {
             if (accountData == null) {
                 throw new Error("Account data was null");
             }
@@ -85,7 +90,7 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
                     });
                 return {
                     putSuccessful: true,
-                    shard: client.shardForAddress(this.address),
+                    shard: this._shardedClient!.shardForAddress(this.address),
                     transactionHash: value_1.trxHash,
                 };
             } catch {

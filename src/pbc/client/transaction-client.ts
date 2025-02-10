@@ -27,12 +27,10 @@ export class TransactionClient {
 
   private static readonly MAX_TRIES = TransactionClient.TRANSACTION_TTL / this.DELAY_BETWEEN_RETRIES;
   private readonly userWallet: ConnectedWalletInterface;
-  private readonly fetchUpdatedState: () => void;
   private readonly client: ShardedClient;
 
-  constructor(client: ShardedClient, userWallet: ConnectedWalletInterface, fetch: () => void) {
+  constructor(client: ShardedClient, userWallet: ConnectedWalletInterface) {
     this.userWallet = userWallet;
-    this.fetchUpdatedState = fetch;
     this.client = client;
   }
 
@@ -42,7 +40,6 @@ export class TransactionClient {
     gasCost: number
   ): Promise<PutTransactionWasSuccessful> {
     const putResponse = await this.userWallet.signAndSendTransaction(
-      this.client,
       {
         rpc,
         address,
@@ -60,7 +57,6 @@ export class TransactionClient {
       putResponse as PutTransactionWasSuccessful
     );
 
-    this.fetchUpdatedState();
     return putResponse as PutTransactionWasSuccessful;
   }
 

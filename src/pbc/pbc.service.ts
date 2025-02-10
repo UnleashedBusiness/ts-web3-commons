@@ -12,24 +12,21 @@ import {AvlClient} from "./client/avl-client.js";
 import type {PBCCallDelegate} from "./pbc.types.js";
 
 export class PartisiaBlockchainService {
-    constructor(
-        private readonly connectedWallet: ConnectedWalletInterface | undefined,
-    ) {
-    }
+    constructor() {}
 
-    public async call<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, view: PBCCallDelegate<R>, loadAvlTreeIndexes: number[] = []): Promise<R> {
-        return this.fetchContractState(chainDefinition, abi_content, contractAddress, loadAvlTreeIndexes).then(
+    public async call<R>(chainDefinition: ChainDefinition, contractAddress: string, view: PBCCallDelegate<R>, loadAvlTreeIndexes: number[] = []): Promise<R> {
+        return this.fetchContractState(chainDefinition, contractAddress, loadAvlTreeIndexes).then(
             args => view(...args)
         );
     }
 
-    public async callMulti(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, views: ((state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadAvlTreeIndexes: number[] = []): Promise<void> {
-        await this.fetchContractState(chainDefinition, abi_content, contractAddress, loadAvlTreeIndexes).then(
+    public async callMulti(chainDefinition: ChainDefinition, contractAddress: string, views: ((state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadAvlTreeIndexes: number[] = []): Promise<void> {
+        await this.fetchContractState(chainDefinition, contractAddress, loadAvlTreeIndexes).then(
             args => Promise.all(views.map(x => x(...args)))
         );
     }
 
-    public async fetchAVLTreeValueByKey<R>(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, treeId: number, key: Buffer, view: (valueReader: StateReader, namedTypes: Record<string, NamedTypeSpec>) => R): Promise<R | undefined> {
+    public async fetchAVLTreeValueByKey<R>(chainDefinition: ChainDefinition, contractAddress: string, treeId: number, key: Buffer, view: (valueReader: StateReader, namedTypes: Record<string, NamedTypeSpec>) => R): Promise<R | undefined> {
         const avlClient = new AvlClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
@@ -40,7 +37,7 @@ export class PartisiaBlockchainService {
         );
 
         let data = await client.getContractData<DefaultContractSerialization>(contractAddress, true);
-        let state_abi = new AbiParser(Buffer.from(abi_content, 'base64')).parseAbi();
+        let state_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
         let isZk = typeof (data!.serializedContract as any)["attestations"] !== 'undefined';
         let contractState = (isZk ? (data!.serializedContract as any).openState.openState : data!.serializedContract.state).data;
         let reader = new StateReader(Buffer.from(contractState, "base64"), state_abi.contract);
@@ -55,24 +52,21 @@ export class PartisiaBlockchainService {
         return value !== undefined ? view(new StateReader(value, state_abi.contract), namedTypes) : value;
     }
 
-    public async send(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {
-        if (this.connectedWallet === undefined) {
+    public async send(connectedWallet: ConnectedWalletInterface, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {
+        if (connectedWallet === undefined || connectedWallet.chain === undefined) {
             throw new Error("connected wallet must be provided for execution of transactions!");
         }
 
+        const chainDefinition = connectedWallet.chain!;
         const client = new ShardedClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
         );
 
-        const transactionClient = new TransactionClient(
-            client,
-            this.connectedWallet,
-            () => {
-            },
-        );
+        const transactionClient = new TransactionClient(client, connectedWallet);
+        let data = await client.getContractData<DefaultContractSerialization>(contractAddress, true)
 
-        let contract_abi = new AbiParser(Buffer.from(abi_content, 'base64')).parseAbi();
+        let contract_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
         const methodCallDataBuilder = new FnRpcBuilder(methodName, contract_abi.contract);
 
         const transactionResult = await transactionClient.sendTransactionAndWait(
@@ -117,14 +111,14 @@ export class PartisiaBlockchainService {
         return transactionResult.transactionHash;
     }
 
-    private async fetchContractState(chainDefinition: ChainDefinition, abi_content: string, contractAddress: string, loadAvlTreeIndexes: number[] = []): Promise<[Record<string, ScValue>, AvlTreeBuilderMap, any]> {
+    private async fetchContractState(chainDefinition: ChainDefinition, contractAddress: string, loadAvlTreeIndexes: number[] = []): Promise<[Record<string, ScValue>, AvlTreeBuilderMap, any]> {
         const client = new ShardedClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
         );
 
         let data = await client.getContractData<DefaultContractSerialization>(contractAddress, true);
-        let state_abi = new AbiParser(Buffer.from(abi_content, 'base64')).parseAbi();
+        let state_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
         let isZk = typeof (data!.serializedContract as any)["attestations"] !== 'undefined';
         let contractState = (isZk ? (data!.serializedContract as any).openState.openState : data!.serializedContract.state).data;
         let reader = new StateReader(Buffer.from(contractState, "base64"), state_abi.contract);

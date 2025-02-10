@@ -1,4 +1,4 @@
-import type {ShardedClient, ShardPutTransactionResponse} from "../client/sharded-client.js";
+import type {ShardPutTransactionResponse} from "../client/sharded-client.js";
 import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
 import type {ChainDefinition} from "../pbc.chains.js";
 
@@ -14,14 +14,17 @@ export interface ConnectedWalletInterface {
    */
   readonly address: string;
   /**
+   * The address that transactions will be sent from.
+   */
+  readonly chain: ChainDefinition | undefined;
+  /**
    * Method to sign and send a transaction to the blockchain.
    */
   readonly signAndSendTransaction: (
-    client: ShardedClient,
     payload: TransactionPayload<Rpc>,
     cost?: string | number
   ) => Promise<ShardPutTransactionResponse>;
 
-  connect(chain: ChainDefinition): Promise<void>;
+  connect(): Promise<void>;
   disconnect(): Promise<void>;
 }

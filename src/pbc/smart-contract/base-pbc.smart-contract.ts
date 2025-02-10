@@ -14,14 +14,12 @@ import {
 export abstract class BasePBCSmartContract {
   protected constructor(
     protected readonly pbcClient: PartisiaBlockchainService,
-    protected readonly abiContent: string,
   ) {
   }
 
   public callView<R>(chainDefinition: ChainDefinition, contractAddress: string, view: (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<R>, loadAvlTreeIndexes?: number[]): Promise<R> {
     return this.pbcClient.call(
       chainDefinition,
-      this.abiContent,
       contractAddress,
       view,
       loadAvlTreeIndexes
@@ -31,7 +29,6 @@ export abstract class BasePBCSmartContract {
   public multiCall(chainDefinition: ChainDefinition, contractAddress: string, views: ((state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadAvlTreeIndexes?: number[]): Promise<void> {
     return this.pbcClient.callMulti(
       chainDefinition,
-      this.abiContent,
       contractAddress,
       views,
       loadAvlTreeIndexes
@@ -44,7 +41,6 @@ export abstract class BasePBCSmartContract {
       executeCall: (chain: ChainDefinition, contractAddress: string) => {
         return this.pbcClient.call(
             chain,
-            this.abiContent,
             contractAddress,
             call,
             loadAvlTreeIndexes

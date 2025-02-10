@@ -38,8 +38,8 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
     }
 
     public async connect(): Promise<void> {
-        // @ts-ignore
-        this.partisiaSdk = new PartisiaSdk(this._autoConnectParameters[chain.id]);
+        this.partisiaSdk = new PartisiaSdk(this._autoConnectParameters);
+
         if (!this.partisiaSdk.isConnected) {
             await this.partisiaSdk!.connect({
                 permissions: [PermissionTypes.SIGN],

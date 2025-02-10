@@ -1,11 +1,9 @@
 import * as bip39 from 'bip39'
-import {type BNInput, ec as Elliptic, type SignatureInput} from 'elliptic'
 import {decrypt, encrypt} from './ecies.js'
 import {Buffer} from "buffer";
 import {HDKey} from "@scure/bip32";
 import CryptoJS from "crypto-js";
-
-const ec = new Elliptic('secp256k1')
+import type {BNInput, Elliptic} from "../elliptic/interfaces.js";
 
 // export const PathHD = `m/44'/60'/0'/0`
 export const PathHD = `m/44'/3757'/0'/0`
@@ -65,33 +63,15 @@ function getChildNodeByPath(node: HDKey, aryPath: string[]): HDKey {
     }
     return child
 }
-export function walletFromXY(eccPoint: { x: string; y: string }, compress: boolean = false) {
-    const publicKey = Buffer.from(ec.keyFromPublic(eccPoint).getPublic(compress, 'array'))
-    return {
-        publicKey: publicKey.toString('hex'),
-        address: publicKeyToAddress(publicKey),
-        type: WalletTypes.Legacy,
-    }
-}
-export function walletFromXPub(xpub: string, idx: number = 0) {
-    const node = HDKey.fromExtendedKey(xpub)
-    const aryPath = `${PathHD}/${idx}`.split('/')
-    const child = getChildNodeByPath(node, aryPath)
-    return {
-        // privateKey: null,
-        publicKey: Buffer.from(child.publicKey!).toString('hex'),
-        address: publicKeyToAddress(Buffer.from(child.publicKey!)),
-        path: aryPath.join('/'),
-    }
-}
-export function walletFromXPrv(xprv: string, idx: number = 0) {
+
+export function walletFromXPrv(elliptic: Elliptic, xprv: string, idx: number = 0) {
     const node = HDKey.fromExtendedKey(xprv)
     const aryPath = `${PathHD}/${idx}`.split('/')
     const child = getChildNodeByPath(node, aryPath)
     return {
         privateKey: Buffer.from(child.privateKey!).toString('hex'),
         publicKey: Buffer.from(child.publicKey!).toString('hex'),
-        address: publicKeyToAddress(Buffer.from(child.publicKey!)),
+        address: publicKeyToAddress(elliptic, Buffer.from(child.publicKey!)),
         path: aryPath.join('/'),
     }
 }
@@ -116,58 +96,34 @@ export function getWalletExtended(mnemonic: string | string[], passphrase: strin
 //   // TODO
 // }
 
-export function getKeyPairHD(mnemonic: string | string[], path_idx: number = 0, passphrase: string = '') {
+export function getKeyPairHD(elliptic: Elliptic, mnemonic: string | string[], path_idx: number = 0, passphrase: string = '') {
     // need to register coin with Bip-44
     // https://github.com/satoshilabs/slips/blob/master/slip-0044.md
     const extended = getWalletExtended(mnemonic, passphrase)
-    const wallet = walletFromXPrv(extended.xprv, Number(path_idx || 0))
+    const wallet = walletFromXPrv(elliptic, extended.xprv, Number(path_idx || 0))
     return {
         ...extended,
         ...wallet,
         type: WalletTypes.HD,
     }
 }
-export function seedToKeyPair(seed: Buffer) {
-    // hash the seed to derive a keypair
-    const privateKey = Buffer.from(CryptoJS.enc.Hex.stringify(CryptoJS.SHA256(CryptoJS.lib.WordArray.create(seed))), "hex");
-    if (privateKey.length !== 32) {
-        throw new Error('invalid private key length');
-    }
-    const publicKey = privateKeyToPublicKey(privateKey.toString('hex'), true)
 
-    return { privateKey, publicKey }
-}
-export function getKeyPairLegacy(mnemonic: string | string[], passphrase: string = '') {
-    const seed = mnemonicToSeed(typeof mnemonic === 'string' ? mnemonic : mnemonic.join(' '), passphrase, false)
-    if (seed.length !== 32) {
-        throw new Error('invalid seed length');
-    }
-
-    const { privateKey, publicKey } = seedToKeyPair(seed)
-    return {
-        privateKey: privateKey.toString('hex'),
-        publicKey: publicKey.toString('hex'),
-        address: publicKeyToAddress(publicKey),
-        type: WalletTypes.Legacy,
-    }
-}
-
-export function getPublicKeyBuffer(publicKey: string | Buffer, compress: boolean = false): Buffer {
+export function getPublicKeyBuffer(elliptic: Elliptic, publicKey: string | Buffer, compress: boolean = false): Buffer {
     // const publicKey = keyPair.getPublic(false, "array");
     let publicKeyBuf: Buffer = typeof publicKey === 'string' ? Buffer.from(publicKey, 'hex') : publicKey
     if (publicKeyBuf.length !== 65) {
         // attempt to uncompress
-        publicKeyBuf = Buffer.from(ec.keyFromPublic(publicKeyBuf).getPublic(false, 'array'))
+        publicKeyBuf = Buffer.from(elliptic.keyFromPublic(publicKeyBuf).getPublic(false, 'array'))
     } else {
         if (publicKeyBuf.length !== 65) {
             throw new Error('public key must be in uncompressed format');
         }
     }
-    return Buffer.from(ec.keyFromPublic(publicKeyBuf).getPublic(compress, 'array'))
+    return Buffer.from(elliptic.keyFromPublic(publicKeyBuf).getPublic(compress, 'array'))
 }
 
-export function publicKeyToAddress(publicKey: Buffer | string): string {
-    const pubBuffer = getPublicKeyBuffer(publicKey)
+export function publicKeyToAddress(elliptic: Elliptic, publicKey: Buffer | string): string {
+    const pubBuffer = getPublicKeyBuffer(elliptic, publicKey)
     if (pubBuffer.length !== 65) {
         throw new Error('public key must be in uncompressed format');
     }
@@ -193,82 +149,50 @@ export function isValidAddress(address: Buffer | string): boolean {
         return false
     }
 }
-export function privateKeyToKeypair(privateKey: string) {
+
+export function privateKeyToKeypair(elliptic: Elliptic, privateKey: string) {
     if (!isValidPrivateKey(privateKey)) {
         throw new Error('invalid private key');
     }
 
-    return ec.keyFromPrivate(privateKey, 'hex')
+    return elliptic.keyFromPrivate(privateKey, 'hex')
 }
 
-export function privateKeyToPublicKey(privateKey: string, compress: boolean = true) {
+export function privateKeyToPublicKey(elliptic: Elliptic, privateKey: string, compress: boolean = true) {
     if (!isValidPrivateKey(privateKey)) {
         throw new Error('invalid private key');
     }
 
-    return Buffer.from(privateKeyToKeypair(privateKey).getPublic(compress, 'array'))
+    return Buffer.from(privateKeyToKeypair(elliptic, privateKey).getPublic(compress, 'array'))
 }
 
-export function privateKeyToAccountAddress(privateKey: string) {
-    if (!isValidPrivateKey(privateKey)) {
-        throw new Error('invalid private key');
-    }
-
-    const publicKey = privateKeyToPublicKey(privateKey)
-    return publicKeyToAddress(publicKey)
-}
-
-export function encryptMessage(pubKey: string | Buffer, message: string | Buffer): Buffer {
-    const pubBuffer = getPublicKeyBuffer(pubKey)
+export function encryptMessage(elliptic: Elliptic, pubKey: string | Buffer, message: string | Buffer): Buffer {
+    const pubBuffer = getPublicKeyBuffer(elliptic, pubKey)
     if (pubBuffer.length !== 65) {
         throw new Error('public key must be in uncompressed format');
     }
 
     const messageBuffer = typeof message === 'string' ? Buffer.from(message, 'utf8') : message
 
-    return encrypt(pubBuffer, messageBuffer)
+    return encrypt(elliptic, pubBuffer, messageBuffer)
 }
 
-export function decryptMessage(privateKey: Buffer | string, encrypt: Buffer | string): Buffer {
+export function decryptMessage(elliptic: Elliptic, privateKey: Buffer | string, encrypt: Buffer | string): Buffer {
     const privBuffer = typeof privateKey === 'string' ? Buffer.from(privateKey, 'hex') : privateKey
     if (privBuffer.length !== 32) {
         throw new Error('private key must be with length 32');
     }
 
     const encryptBuffer: Buffer = typeof encrypt === 'string' ? Buffer.from(encrypt, 'hex') : encrypt
-    return decrypt(ec.keyFromPrivate(privBuffer), encryptBuffer)
+    return decrypt(elliptic, elliptic.keyFromPrivate(privBuffer), encryptBuffer)
 }
-export function signTransaction(data: BNInput, privateKey: string): Buffer {
-    const keyPair = privateKeyToKeypair(privateKey)
+
+export function signTransaction(elliptic: Elliptic, data: BNInput, privateKey: string): Buffer {
+    const keyPair = privateKeyToKeypair(elliptic, privateKey)
     const signature = keyPair.sign(data, 'hex', { canonical: true })
     return Buffer.concat([
         Buffer.from([signature.recoveryParam!]),
         signature.r.toArrayLike(Buffer, 'be', 32),
         signature.s.toArrayLike(Buffer, 'be', 32),
     ])
-}
-
-export function verifySignature(hash: Buffer | string, signature: Buffer | string, publicKey: Buffer | string): boolean {
-    if (hash.length !== 32) {
-        throw new Error('must be sha256 hash');
-    }
-    const publicKeyBuf = typeof publicKey === 'string' ? Buffer.from(publicKey, 'hex') : publicKey
-    const signatureBuf = typeof signature === 'string' ? Buffer.from(signature, 'hex') : signature
-    const keyPair = ec.keyFromPublic(publicKeyBuf, 'array')
-
-    if (signatureBuf.length !== 65) {
-        throw new Error('Partisia Signatures must be 65 bytes');
-    }
-
-    const recoveryParam = signatureBuf[0]
-    const r = signatureBuf.subarray(1, 33)
-    const s = signatureBuf.subarray(33, 65)
-
-    const sig: SignatureInput = {
-        recoveryParam,
-        r,
-        s,
-    }
-
-    return ec.verify(hash, sig, keyPair, 'array')
 }

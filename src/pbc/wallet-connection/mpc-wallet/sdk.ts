@@ -3,6 +3,7 @@ import {Buffer} from "buffer";
 import {decryptMessage, encryptMessage, entropyToMnemonic, getKeyPairHD} from "./wallet.js";
 import {randomBytes} from "ethers";
 import {deserializeBSONWithoutOptimiser} from "@deepkit/bson";
+import type {Elliptic} from "../elliptic/interfaces.js";
 
 declare global {
     interface Window {
@@ -20,7 +21,10 @@ export class PartisiaSdk {
     readonly seed: string
     private _connection?: ISdkConnection = undefined
 
-    constructor(args: { seed?: Buffer | string; connection?: ISdkConnection } = {}) {
+    constructor(
+        private readonly elliptic: Elliptic,
+        args: { seed?: Buffer | string; connection?: ISdkConnection } = {}
+    ) {
         const {seed, connection} = args
         if (seed) {
             this.seed = typeof seed === 'string' ? seed : Buffer.from(seed).toString('hex')
@@ -40,7 +44,7 @@ export class PartisiaSdk {
             throw new Error('Extension not Found');
         }
 
-        const hd = getKeyPairHD(entropyToMnemonic(this.seed), 0)
+        const hd = getKeyPairHD(this.elliptic, entropyToMnemonic(this.seed), 0)
 
         const payloadOpenConfirm = {
             payload: args,
@@ -52,7 +56,7 @@ export class PartisiaSdk {
         const popupWindow = await sdkOpenPopupTab<{ tabId: number; box: string }>(payloadOpenConfirm)
         const {payload} = await sdkListenTabEvent<{ tabId: number; payload: string }>(popupWindow.tabId)
 
-        const decrypted = decryptMessage(hd.privateKey, payload);
+        const decrypted = decryptMessage(this.elliptic, hd.privateKey, payload);
 
         const account = deserializeBSONWithoutOptimiser(decrypted);
         this._connection = {account, popupWindow}
@@ -79,9 +83,9 @@ export class PartisiaSdk {
         }
 
         const publicKey = this.connection!.popupWindow.box
-        const enc = encryptMessage(publicKey, Buffer.from(JSON.stringify(obj))).toString('hex')
+        const enc = encryptMessage(this.elliptic, publicKey, Buffer.from(JSON.stringify(obj))).toString('hex')
 
-        const hd = getKeyPairHD(entropyToMnemonic(this.seed), 0)
+        const hd = getKeyPairHD(this.elliptic, entropyToMnemonic(this.seed), 0)
         const payloadWindowSign = {
             payload: enc,
             windowType: PermissionTypes.SIGN,
@@ -89,9 +93,9 @@ export class PartisiaSdk {
         }
         const popupSign = await sdkOpenPopupTab<{ tabId: number }>(payloadWindowSign)
         const popupData = await sdkListenTabEvent<{ tabId: number; payload: string, hd_idx: number }>(popupSign.tabId)
-        const hdWallet = getKeyPairHD(entropyToMnemonic(this.seed), popupData.hd_idx)
+        const hdWallet = getKeyPairHD(this.elliptic, entropyToMnemonic(this.seed), popupData.hd_idx)
 
-        return deserializeBSONWithoutOptimiser(decryptMessage(Buffer.from(hdWallet.privateKey, 'hex'), popupData.payload)) as {
+        return deserializeBSONWithoutOptimiser(decryptMessage(this.elliptic, Buffer.from(hdWallet.privateKey, 'hex'), popupData.payload)) as {
             signature: string
             serializedTransaction: string
             digest: string

@@ -1,5 +1,3 @@
-import {ec} from "elliptic";
-import KeyPair = ec.KeyPair;
 import type {ConnectedWalletInterface} from "./connected-wallet.interface.js";
 import {ShardedClient, type ShardPutTransactionResponse} from "../client/sharded-client.js";
 import type {Rpc, TransactionPayload} from "../dto/transaction-data.dto.js";
@@ -8,6 +6,8 @@ import {TransactionClient} from "../client/transaction-client.js";
 import {BigEndianByteOutput} from "@secata-public/bitmanipulation-ts";
 import {CryptoUtils} from "@partisiablockchain/zk-client";
 import type {ChainDefinition} from "../pbc.chains.js";
+import type {KeyPairSigner} from "./elliptic/interfaces.js";
+
 
 export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
     private readonly transactionSerializer: TransactionSerializer = new TransactionSerializer();
@@ -15,7 +15,7 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
 
     constructor(
         public readonly address: string,
-        public readonly keyPair: KeyPair,
+        public readonly keyPair: KeyPairSigner,
         public readonly chain: ChainDefinition,
     ) {
     }

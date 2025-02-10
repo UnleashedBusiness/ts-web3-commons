@@ -1,8 +1,7 @@
 import CryptoJS from "crypto-js";
 import {Buffer} from "buffer";
-import {ec as Elliptic, ec as EC} from "elliptic";
+import type {Elliptic, KeyPairSigner} from "../elliptic/interfaces.js";
 
-const ec = new Elliptic('secp256k1')
 
 const optionsDefault = {
     hashName: 'sha256',
@@ -54,17 +53,17 @@ function macMessage(key: Buffer, message: Buffer): Buffer {
     return Buffer.from(CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA256(CryptoJS.lib.WordArray.create(message), CryptoJS.lib.WordArray.create(key))), "hex");
 }
 
-export const encrypt = (publicKey: Buffer | string, message: Buffer | string, options: any = {}) => {
+export const encrypt = (elliptic: Elliptic, publicKey: Buffer | string, message: Buffer | string, options: any = {}) => {
     publicKey = typeof publicKey === 'string' ? Buffer.from(publicKey, 'hex') : publicKey
     message = typeof message === 'string' ? Buffer.from(message, 'utf8') : message
 
     options = {...optionsDefault, ...options}
 
-    const ecdh = ec.genKeyPair();
+    const ecdh = elliptic.genKeyPair();
     // R
     const R = Buffer.from(ecdh.getPublic().encode("array", false));
     // S
-    const sharedSecret = Buffer.from(ecdh.derive(ec.keyFromPublic(publicKey).getPublic()).toString(16), "hex");
+    const sharedSecret = Buffer.from(ecdh.derive(elliptic.keyFromPublic(publicKey).getPublic()).toString(16), "hex");
 
     // uses KDF to derive a symmetric encryption and a MAC keys:
     // Ke || Km = KDF(S || S1)
@@ -98,7 +97,7 @@ function equalConstTime(b1: Buffer, b2: Buffer) {
     return result === 0
 }
 
-export const decrypt = (ecdh: EC.KeyPair, message: Buffer, options: any = {}) => {
+export const decrypt = (elliptic: Elliptic, ecdh: KeyPairSigner, message: Buffer, options: any = {}) => {
     options = {...optionsDefault, ...options}
 
     const publicKeyLength = ecdh.getPublic().encode("array", false).length
@@ -110,7 +109,7 @@ export const decrypt = (ecdh: EC.KeyPair, message: Buffer, options: any = {}) =>
     const messageTag = message.subarray(message.length - options.macLength)
 
     // S
-    const sharedSecret = Buffer.from(ecdh.derive(ec.keyFromPublic(R).getPublic()).toString(16), "hex");
+    const sharedSecret = Buffer.from(ecdh.derive(elliptic.keyFromPublic(R).getPublic()).toString(16), "hex");
 
     // derives keys the same way as Alice did:
     // Ke || Km = KDF(S || S1)

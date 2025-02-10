@@ -7,6 +7,7 @@ import {TransactionClient} from "../client/transaction-client.js";
 import {type ISdkConnection, PartisiaSdk} from "./mpc-wallet/sdk.js";
 import {PermissionTypes} from "./mpc-wallet/sdk-listeners.js";
 import {Buffer} from "buffer";
+import type {Elliptic} from "./elliptic/interfaces.js";
 
 export interface MPCWalletAutoConnectParameters {
     connection?: ISdkConnection,
@@ -27,6 +28,7 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
 
     constructor(
         private readonly dappName: string,
+        private readonly elliptic: Elliptic,
         public readonly chain: ChainDefinition,
         _autoConnectParameters: MPCWalletAutoConnectParameters
     ) {
@@ -38,7 +40,7 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
     }
 
     public async connect(): Promise<void> {
-        this.partisiaSdk = new PartisiaSdk(this._autoConnectParameters);
+        this.partisiaSdk = new PartisiaSdk(this.elliptic, this._autoConnectParameters);
 
         if (!this.partisiaSdk.isConnected) {
             await this.partisiaSdk!.connect({

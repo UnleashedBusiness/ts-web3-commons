@@ -27,8 +27,8 @@ export class DeploymentUtils {
         });
     }
 
-    public static async deployContract<Factory extends ContractFactory<any[], BaseContract>>(provider: HardhatEthersProvider, rpc: string, signer: string, name: string, callable: (factory: Factory) => Promise<ContractDeployTransaction>): Promise<string> {
-        let routerFactory = await getContractFactory<any[], BaseContract>(name);
+    public static async deployContract<Factory extends ContractFactory<any[], BaseContract>>(provider: HardhatEthersProvider, rpc: string, signer: string, name: string, callable: (factory: Factory) => Promise<ContractDeployTransaction>, libs?: Record<string, string>): Promise<string> {
+        let routerFactory = await getContractFactory<any[], BaseContract>(name, {libraries: libs});
 
         let deployTxn = await callable(routerFactory as unknown as Factory);
         let estimate = await provider.estimateGas(deployTxn).then(x => x * 11n / 10n);

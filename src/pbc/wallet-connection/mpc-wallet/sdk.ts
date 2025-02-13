@@ -2,7 +2,7 @@ import {PermissionTypes, sdkListenTabEvent, sdkOpenPopupTab} from './sdk-listene
 import {Buffer} from "buffer";
 import {decryptMessage, encryptMessage, entropyToMnemonic, getKeyPairHD} from "./wallet.js";
 import {randomBytes} from "ethers";
-import {deserializeBSONWithoutOptimiser} from "@deepkit/bson";
+import {deserializeBSONWithoutOptimiser, serializeBSON} from "@deepkit/bson";
 import type {Elliptic} from "../elliptic/interfaces.js";
 
 declare global {
@@ -83,7 +83,7 @@ export class PartisiaSdk {
         }
 
         const publicKey = this.connection!.popupWindow.box
-        const enc = encryptMessage(this.elliptic, publicKey, Buffer.from(JSON.stringify(obj))).toString('hex')
+        const enc = encryptMessage(this.elliptic, publicKey, Buffer.from(serializeBSON(obj))).toString('hex')
 
         const hd = getKeyPairHD(this.elliptic, entropyToMnemonic(this.seed), 0)
         const payloadWindowSign = {

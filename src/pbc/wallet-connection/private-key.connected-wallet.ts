@@ -42,7 +42,7 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
             {
                 cost: String(cost),
                 nonce: accountData.nonce,
-                validTo: String(new Date().getTime() + TransactionClient.TRANSACTION_TTL),
+                validTo: String(Date.now() + TransactionClient.TRANSACTION_TTL),
             },
             {
                 contract: payload.address

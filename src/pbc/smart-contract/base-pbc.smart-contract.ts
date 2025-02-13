@@ -11,11 +11,13 @@ import {
     ToMultiCall
 } from "../pbc.types.js";
 import type {ConnectedWalletInterface} from "../wallet-connection/connected-wallet.interface.js";
+import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service.js";
 
 export abstract class BasePBCSmartContract {
     protected constructor(
         protected readonly pbcClient: PartisiaBlockchainService,
-        protected readonly connectedWallet: ConnectedWalletInterface
+        protected readonly connectedWallet: ConnectedWalletInterface,
+        protected readonly transactionHelper: TransactionRunningHelperService,
     ) {
     }
 
@@ -51,7 +53,7 @@ export abstract class BasePBCSmartContract {
         }
     }
 
-    public send(chainDefinition: ChainDefinition, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {
+    public async send(chainDefinition: ChainDefinition, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {
         if (!this.connectedWallet.isConnected) {
             throw new Error("Wallet not connected!");
         }
@@ -59,13 +61,23 @@ export abstract class BasePBCSmartContract {
             throw new Error(`Wallet is connected to different chain! Expected: ${chainDefinition.name}, Connected to: ${this.connectedWallet.chain?.name}`);
         }
 
-        return this.pbcClient.send(
-            this.connectedWallet,
-            contractAddress,
-            methodName,
-            methodCallBuilder,
-            gasCost,
-        );
+        this.transactionHelper.start();
+
+        try {
+            const txId = await this.pbcClient.send(
+                this.connectedWallet,
+                contractAddress,
+                methodName,
+                methodCallBuilder,
+                gasCost,
+            );
+            this.transactionHelper.success(txId);
+
+            return txId;
+        } catch (error: any) {
+            this.transactionHelper.failed(error?.message);
+            throw error;
+        }
     }
 
     public abstract buildInstance(chain: ChainDefinition, contractAddress: string): BasePBCSmartContractInstance<this>;

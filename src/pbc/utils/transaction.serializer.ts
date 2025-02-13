@@ -57,7 +57,7 @@ export class TransactionSerializer {
         return {
             cost: String(cost),
             nonce: String(nonce),
-            validTo: String(new Date(validTo).getTime()),
+            validTo: String(new Date(Number(validTo)).getTime()),
         }
     }
 

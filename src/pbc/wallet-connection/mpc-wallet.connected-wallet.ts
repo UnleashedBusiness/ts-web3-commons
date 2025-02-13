@@ -39,6 +39,10 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
         return this.connection?.account.address ?? EmptyPBCAddress
     }
 
+    get isConnected(): boolean {
+        return this.connection !== undefined;
+    }
+
     public async connect(): Promise<void> {
         this.partisiaSdk = new PartisiaSdk(this.elliptic, this._autoConnectParameters);
 
@@ -80,26 +84,26 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
                     nonce: accountData.nonce,
                     validTo: String(new Date().getTime() + TransactionClient.TRANSACTION_TTL),
                 },
-                payload
+                {
+                    contract: payload.address
+                },
+                payload.rpc
             );
             // Ask the MPC wallet to sign and send the transaction.
-            try {
-                const value_1 = await this.partisiaSdk!
-                    .signMessage({
-                        payload: serializedTx.toString("hex"),
-                        payloadType: "hex",
-                        dontBroadcast: false,
-                    });
-                return {
+            return this.partisiaSdk!
+                .signMessage({
+                    payload: serializedTx.toString("hex"),
+                    payloadType: "hex",
+                    dontBroadcast: false,
+                })
+                .then((value) => ({
                     putSuccessful: true,
                     shard: this._shardedClient!.shardForAddress(this.address),
-                    transactionHash: value_1.trxHash,
-                };
-            } catch {
-                return ({
+                    transactionHash: value.trxHash,
+                }))
+                .catch(() => ({
                     putSuccessful: false,
-                });
-            }
+                }));
         });
 
     }

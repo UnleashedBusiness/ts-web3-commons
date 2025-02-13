@@ -23,7 +23,6 @@ export async function sdkOpenPopupTab<T>(payload: IPopupConnection | IPopupSign)
     return new Promise(async (resolve, reject) => {
         const evt = { result: false }
 
-        // @ts-ignore
         window.__onPartisiaConfirmWin(payload, evt)
         await onPartisiaCallback(evt, -1)
 
@@ -37,7 +36,6 @@ export async function sdkListenTabEvent<T>(tabId: number): Promise<T> {
     return new Promise(async (resolve, reject) => {
         const evt = { result: false }
 
-        // @ts-ignore
         window.__onPartisiaWalletTabEvent(tabId, evt)
         await onPartisiaCallback(evt, tabId)
 

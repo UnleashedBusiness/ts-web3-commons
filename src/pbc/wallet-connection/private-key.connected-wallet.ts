@@ -20,6 +20,10 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
     ) {
     }
 
+    get isConnected(): boolean {
+        return this._shardedClient !== undefined;
+    }
+
     async connect(): Promise<void> {
         this._shardedClient = new ShardedClient(this.chain.rpcList[0], this.chain.shards);
     }
@@ -40,7 +44,10 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
                 nonce: accountData.nonce,
                 validTo: String(new Date().getTime() + TransactionClient.TRANSACTION_TTL),
             },
-            payload
+            {
+                contract: payload.address
+            },
+            payload.rpc
         );
         const hash = CryptoUtils.hashBuffers([
             serializedTx,

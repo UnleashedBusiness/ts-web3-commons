@@ -24,6 +24,14 @@ export class DeploymentUtils {
             script.on('error', (err) => {
                 reject(err.stack);
             });
+
+            script.on('exit', (code) => {
+                if (code !== 0) {
+                    reject()
+                } else {
+                    resolve("");
+                }
+            })
         });
     }
 
@@ -39,7 +47,7 @@ export class DeploymentUtils {
         return getCreateAddress({from: signer, nonce: nonce});
     }
 
-    public static async methodExecute<T extends BaseContract>(hre: HardhatRuntimeEnvironment, provider: HardhatEthersProvider, rpc: string, signer: string, name: string, address: string, callable: (contract: T) => Promise<ContractTransaction>): Promise<string> {
+    public static async methodExecute<T extends BaseContract>(hre: HardhatRuntimeEnvironment, provider: HardhatEthersProvider, rpc: string, signer: string, name: string, address: string, callable: (contract: T) => Promise<ContractTransaction>): Promise<void> {
         let contract = await getContractAt(hre, name, address);
         let methodTxn = await callable(contract as unknown as T);
 
@@ -55,8 +63,6 @@ export class DeploymentUtils {
         let nonce = await provider.getTransactionCount(signer);
 
         await DeploymentUtils.execute("seth", ["send", `--from`, `${signer}`,  `--rpc-url`, `${rpc}`, `-G`, estimate!.toString(), '--nonce', `${nonce}`, `${address}`, `${methodTxn.data}`]).then(x => x.replace("\n", ""));
-
-        return getCreateAddress({from: signer, nonce: nonce});
     }
 
     public static async repeatingTransaction<T>(callable: () => Promise<T>) {

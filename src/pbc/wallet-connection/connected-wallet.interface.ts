@@ -25,6 +25,8 @@ export interface ConnectedWalletInterface {
     cost?: string | number
   ) => Promise<ShardPutTransactionResponse>;
 
+  get isConnected(): boolean;
+
   connect(): Promise<void>;
   disconnect(): Promise<void>;
 }

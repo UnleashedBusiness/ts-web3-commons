@@ -21,6 +21,7 @@ export class AvlClient extends BaseClient {
         treeId: number,
         key: Buffer
     ): Promise<Buffer | undefined> {
+        console.log(`getContractStateAvlValue: ${this.contractStateQueryUrl(address)}/avl/${treeId}/${key.toString("hex")}`);
         const data = await this.getRequest<{ data: string }>(
             `${this.contractStateQueryUrl(address)}/avl/${treeId}/${key.toString("hex")}`
         );

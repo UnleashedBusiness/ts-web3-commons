@@ -62,15 +62,17 @@ export class ShardedClient extends BaseClient {
 
     public getContractData<T>(
         address: string,
-        withState?: true
+        withState: boolean,
+        withTrees: boolean
     ): Promise<ContractData<T> | undefined>;
     public getContractData<T>(
         address: string,
-        withState?: boolean
+        withState: boolean,
+        withTrees: boolean = false
     ): Promise<ContractData<T> | ContractCore | undefined> {
         const requireState = withState === undefined || withState;
 
-        return this.clientForAddress(address).getContractData(address, requireState);
+        return this.clientForAddress(address).getContractData(address, requireState, withTrees);
     }
 
     public getExecutedTransaction(

@@ -1,9 +1,7 @@
-import {FnRpcBuilder, type ScValue} from "@partisiablockchain/abi-client";
-import {NamedTypeSpec} from "@partisiablockchain/abi-client/target/main/types/Abi.js";
+import {FnRpcBuilder} from "@partisiablockchain/abi-client";
 import {PBCContractMultiCall} from "./pbc-contract-multi-call.js";
 import type {PartisiaBlockchainService} from "../pbc.service.js";
 import type {ChainDefinition} from "../pbc.chains.js";
-import type {AvlTreeBuilderMap} from "../utils/avl-tree.utils.js";
 import {
     type PBCCallDefinition,
     type PBCCallDelegate,
@@ -21,25 +19,27 @@ export abstract class BasePBCSmartContract {
     ) {
     }
 
-    public callView<R>(chainDefinition: ChainDefinition, contractAddress: string, view: PBCCallDelegate<R>, loadAvlTreeIndexes?: number[]): Promise<R> {
+    public callView<R>(chainDefinition: ChainDefinition, contractAddress: string, view: PBCCallDelegate<R>,  loadState: boolean, loadAvlTreeIndexes?: number[]): Promise<R> {
         return this.pbcClient.call(
             chainDefinition,
             contractAddress,
             view,
+            loadState,
             loadAvlTreeIndexes
         );
     }
 
-    public multiCall(chainDefinition: ChainDefinition, contractAddress: string, views: PBCMultiCallDelegate[], loadAvlTreeIndexes?: number[]): Promise<void> {
+    public multiCall(chainDefinition: ChainDefinition, contractAddress: string, views: PBCMultiCallDelegate[], loadState: boolean, loadAvlTreeIndexes?: number[]): Promise<void> {
         return this.pbcClient.callMulti(
             chainDefinition,
             contractAddress,
             views,
+            loadState,
             loadAvlTreeIndexes
         );
     }
 
-    public buildMethodDefinition<R>(call: PBCCallDelegate<R>, loadAvlTreeIndexes: number[] = []): PBCCallDefinition<R> {
+    public buildMethodDefinition<R>(call: PBCCallDelegate<R>, loadState: boolean, loadAvlTreeIndexes: number[] = []): PBCCallDefinition<R> {
         return {
             buildMultiCall: (callback: (value: R) => Promise<any>) => [ToMultiCall(call, callback), loadAvlTreeIndexes],
             executeCall: (chain: ChainDefinition, contractAddress: string) => {
@@ -47,6 +47,7 @@ export abstract class BasePBCSmartContract {
                     chain,
                     contractAddress,
                     call,
+                    loadState,
                     loadAvlTreeIndexes
                 )
             }
@@ -91,15 +92,16 @@ export class BasePBCSmartContractInstance<C extends BasePBCSmartContract> {
     ) {
     }
 
-    public callView<R>(view: (state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<R>, loadAvlTreeIndexes?: number[]): Promise<R> {
-        return this.contract.callView(this.chain, this.address, view, loadAvlTreeIndexes);
+    public callView<R>(view: PBCCallDelegate<R>, loadState: boolean, loadAvlTreeIndexes?: number[]): Promise<R> {
+        return this.contract.callView(this.chain, this.address, view, loadState, loadAvlTreeIndexes);
     }
 
-    public multiCall(views: ((state: Record<string, ScValue>, trees: AvlTreeBuilderMap, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadAvlTreeIndexes?: number[]): Promise<void> {
+    public multiCall(views: PBCMultiCallDelegate[], loadState: boolean, loadAvlTreeIndexes?: number[]): Promise<void> {
         return this.contract.multiCall(
             this.chain,
             this.address,
             views,
+            loadState,
             loadAvlTreeIndexes
         );
     }
@@ -108,12 +110,13 @@ export class BasePBCSmartContractInstance<C extends BasePBCSmartContract> {
         return new PBCContractMultiCall(this);
     }
 
-    public buildMethodDefinition<R>(call: PBCCallDelegate<R>, loadAvlTreeIndexes: number[] = []): PBCInstanceCallDefinition<R> {
+    public buildMethodDefinition<R>(call: PBCCallDelegate<R>, loadState: boolean, loadAvlTreeIndexes: number[] = []): PBCInstanceCallDefinition<R> {
         return {
             buildMultiCall: (callback: (value: R) => Promise<any>) => [ToMultiCall(call, callback), loadAvlTreeIndexes],
             executeCall: () => {
                 return this.contract.buildMethodDefinition(
                     call,
+                    loadState,
                     loadAvlTreeIndexes
                 ).executeCall(this.chain, this.address)
             }

@@ -17,9 +17,8 @@ export class HttpClient extends BaseClient {
         withState = true,
         withTrees: boolean = false
     ): Promise<ContractCore | ContractData<T> | undefined> {
-        const query = "?requireContractState=" + withState
-            + "&stateOutput="
-            + (withTrees ? "DEFAULT" : "BINARY");
+        const query = "?stateOutput="
+            + (withState ? (withTrees ? "DEFAULT" : "BINARY") : "NONE");
 
         return this.getRequest(this.host + "/blockchain/contracts/" + address + query);
     }

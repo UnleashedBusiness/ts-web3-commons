@@ -4,6 +4,7 @@ import type {PBCMultiCallDelegate, PBCMultiCallDelegateWithTrees} from "../pbc.t
 export class PBCContractMultiCall<C extends BasePBCSmartContract> {
   private calls: PBCMultiCallDelegate[] = [];
   private trees: Set<number> = new Set<number>();
+  private requireState: boolean = false;
   private executed = false;
 
   constructor(
@@ -11,10 +12,14 @@ export class PBCContractMultiCall<C extends BasePBCSmartContract> {
   ) {
   }
 
-  public add(call: PBCMultiCallDelegateWithTrees): this {
+  public add(needState: boolean, call: PBCMultiCallDelegateWithTrees): this {
     this.calls.push(call[0]);
     for (let treeId of call[1]) {
       this.trees.add(treeId);
+    }
+
+    if (needState) {
+      this.requireState = true;
     }
 
     return this;
@@ -27,6 +32,7 @@ export class PBCContractMultiCall<C extends BasePBCSmartContract> {
 
     let response = this.contractInstance.multiCall(
       this.calls,
+      this.requireState,
       Array.from(this.trees)
     );
 

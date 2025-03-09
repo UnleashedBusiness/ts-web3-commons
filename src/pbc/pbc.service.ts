@@ -99,11 +99,10 @@ export class PartisiaBlockchainService {
         if (loadState) {
             let reader = new StateReader(Buffer.from(data!.serializedContract, "base64"), state_abi.contract);
             state = reader.readState();
+        }
 
-            //@ts-ignore
-            for (let type of reader.namedTypes) {
-                namedTypes[type.name] = type;
-            }
+        for (let type of state_abi.contract.namedTypes) {
+            namedTypes[type.name] = type;
         }
 
         let loadedTrees: Record<number, AvlTreeReaderBuilder> = {};

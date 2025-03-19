@@ -1,5 +1,10 @@
 import {type BlockchainDefinition, fromPBCChainToBlockchainDefinition} from "../utils/chains.js";
 
+const PBC_TESTNET_ID = 18500;
+const PBC_MAINNET_ID = 8500;
+const PBC_TESTNET_NAME = "TESTNET";
+const PBC_MAINNET_NAME = "MAINNET";
+
 export class ChainDefinition {
     constructor(
         public readonly id: number,
@@ -17,7 +22,7 @@ export class ChainDefinition {
     public static fromBlockchainDefinition(chain: BlockchainDefinition): ChainDefinition {
         return new ChainDefinition(
             chain.networkId,
-            chain.networkId === PBCChain.TESTNET.id ? PBCChain.TESTNET.name : PBCChain.MAINNET.name,
+            chain.networkId === PBC_TESTNET_ID ? PBC_TESTNET_NAME : PBC_MAINNET_NAME,
             chain.networkRPC,
             chain.extra?.['Shards'] ?? [],
             chain.extra?.['SystemContracts'] ?? {},
@@ -32,8 +37,8 @@ export class ChainDefinition {
 
 export class PBCChain {
     public static readonly TESTNET = new ChainDefinition(
-        18500,
-        "TESTNET",
+        PBC_TESTNET_ID,
+        PBC_TESTNET_NAME,
         ["https://node1.testnet.partisiablockchain.com"],
         ["Shard0", "Shard1", "Shard2"],
         {
@@ -43,8 +48,8 @@ export class PBCChain {
         "https://browser.testnet.partisiablockchain.com/"
     );
     public static readonly MAINNET = new ChainDefinition(
-        8500,
-        "MAINNET",
+        PBC_MAINNET_ID,
+        PBC_MAINNET_NAME,
         ["https://reader.partisiablockchain.com"],
         ["Shard0", "Shard1", "Shard2"],
         {

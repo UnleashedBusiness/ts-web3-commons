@@ -35,8 +35,8 @@ export class ChainDefinition {
     }
 }
 
-export class PBCChain {
-    public static readonly TESTNET = new ChainDefinition(
+export const PBCChain = {
+    TESTNET: new ChainDefinition(
         PBC_TESTNET_ID,
         PBC_TESTNET_NAME,
         ["https://node1.testnet.partisiablockchain.com"],
@@ -46,8 +46,8 @@ export class PBCChain {
             ZKDeploy: "018bc1ccbb672b87710327713c97d43204905082cb",
         },
         "https://browser.testnet.partisiablockchain.com/"
-    );
-    public static readonly MAINNET = new ChainDefinition(
+    ),
+    MAINNET: new ChainDefinition(
         PBC_MAINNET_ID,
         PBC_MAINNET_NAME,
         ["https://reader.partisiablockchain.com"],
@@ -57,7 +57,7 @@ export class PBCChain {
             ZKDeploy: "",
         },
         "https://browser.partisiablockchain.com/"
-    );
+    )
 }
 
 export const PBCChainsIndex: Record<string, ChainDefinition> = {

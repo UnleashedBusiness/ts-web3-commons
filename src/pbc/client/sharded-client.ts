@@ -75,6 +75,11 @@ export class ShardedClient extends BaseClient {
         return this.clientForAddress(address).getContractData(address, requireState, withTrees);
     }
 
+
+    public getContractStateTraverse(address: string): Promise<{ data: string } | undefined> {
+        return this.clientForAddress(address).getContractStateTraverse(address);
+    }
+
     public getExecutedTransaction(
         shard: ShardId,
         identifier: string,

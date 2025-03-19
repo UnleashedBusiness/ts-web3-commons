@@ -91,13 +91,14 @@ export class PartisiaBlockchainService {
             chainDefinition.shards,
         );
 
-        let data = await client.getContractData<string>(contractAddress, loadState, false);
+        let data = await client.getContractData<string>(contractAddress, false, false);
         let state_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
 
         let state = undefined;
         let namedTypes: any = {};
         if (loadState) {
-            let reader = new StateReader(Buffer.from(data!.serializedContract, "base64"), state_abi.contract);
+            const stateString = await client.getContractStateTraverse(contractAddress);
+            let reader = new StateReader(Buffer.from(stateString!.data, "base64"), state_abi.contract);
             state = reader.readState();
         }
 

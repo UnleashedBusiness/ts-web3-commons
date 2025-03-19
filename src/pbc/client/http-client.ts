@@ -23,6 +23,14 @@ export class HttpClient extends BaseClient {
         return this.getRequest(this.host + "/blockchain/contracts/" + address + query);
     }
 
+    public getContractStateTraverse(address: string): Promise<{ data: string } | undefined> {
+        return this.postRequest(this.host + "/blockchain/contracts/" + address, {
+            "path": [
+                {"type": "field", "name": "state"}
+            ]
+        });
+    }
+
     public getAccountData(address: string): Promise<AccountData | undefined> {
         return this.getRequest<AccountData>(this.host + "/blockchain/account/" + address).then(
             (response?: AccountData) => {

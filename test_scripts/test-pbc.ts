@@ -106,7 +106,8 @@ new Promise(async () => {
 
     console.time("refer")
     console.log(await instance.callView(
-        async (_, trees, namedTypes) => {
+        async (state, trees, namedTypes) => {
+            console.log(state);
             const tree = trees[1](true, U128TypeSpec, namedTypes['BridgeQueueElement'] as StructTypeSpec, keyRaw => keyRaw.asBN(), value => value.structValue().getFieldValue("timestamp")!.asBN().toString());
             return await tree.get(new AvlTreeBNKey(new BN.BN("256"), 16));
         },

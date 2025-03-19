@@ -29,6 +29,11 @@ export class BaseClient {
     return this.handleFetch(fetch(url, options));
   }
 
+  protected postRequest<R, T>(url: string, object: T): Promise<R | undefined> {
+    const options = this.buildOptions("POST", BaseClient.postHeaders, object);
+    return this.handleFetch(fetch(url, options));
+  }
+
   protected async handleFetch<T>(promise: Promise<Response>): Promise<T | undefined> {
     try {
       let response = await promise;
@@ -44,4 +49,4 @@ export class BaseClient {
   }
 }
 
-export type RequestType = "GET" | "PUT";
+export type RequestType = "GET" | "PUT" | "POST";

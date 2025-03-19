@@ -1,18 +1,4 @@
-import {
-    arbitrum, arbitrumNova,
-    avalanche, avalancheFuji,
-    bsc,
-    bscTestnet,
-    type Chain,
-    mainnet,
-    opBNB,
-    opBNBTestnet,
-    optimism, optimismSepolia,
-    polygon, polygonAmoy,
-    polygonMumbai, polygonZkEvm, polygonZkEvmTestnet,
-    sepolia
-} from "viem/chains";
-import {ChainDefinition, PBCChain} from "../pbc/pbc.chains.js";
+import type {Chain} from "viem/chains";
 
 export class BlockchainDefinition {
     public readonly isPBC: boolean;
@@ -32,20 +18,6 @@ export class BlockchainDefinition {
     }
 }
 
-export function fromPBCChainToBlockchainDefinition(chain: ChainDefinition, blockTime: number): BlockchainDefinition {
-    return new BlockchainDefinition(
-        "chain_" + chain.id,
-        chain.id,
-        chain.name,
-        chain.rpcList,
-        "MPC",
-        blockTime,
-        chain.explorer,
-        true,
-        {"Shards": chain.shards, "SystemContracts": chain.systemContracts}
-    );
-}
-
 export function fromViemChainToBlockchainDefinition(chain: Chain, blockTime: number): BlockchainDefinition {
     return new BlockchainDefinition(
         "chain_" + chain.id,
@@ -63,46 +35,6 @@ export function fromViemChainToBlockchainDefinition(chain: Chain, blockTime: num
         chain.blockExplorers?.default.url,
     );
 }
-
-export const blockchainIndex = {
-    MUMBAI_TESTCHAIN: fromViemChainToBlockchainDefinition(polygonMumbai, 2),
-    AMOY_TESTCHAIN: fromViemChainToBlockchainDefinition(polygonAmoy, 2),
-    ZKEVM_TESTCHAIN: fromViemChainToBlockchainDefinition(polygonZkEvmTestnet, 2),
-    MATIC: fromViemChainToBlockchainDefinition(polygon, 4),
-    ZKEVM_MAINNET: fromViemChainToBlockchainDefinition(polygonZkEvm, 4),
-    BSC_TESTCHAIN: fromViemChainToBlockchainDefinition(bscTestnet, 3),
-    BSC: fromViemChainToBlockchainDefinition(bsc, 3),
-    OPBNB_TESTNET: fromViemChainToBlockchainDefinition(opBNBTestnet, 1),
-    OPBNB: fromViemChainToBlockchainDefinition(opBNB, 1),
-    SEPOLIA_TESTCHAIN: fromViemChainToBlockchainDefinition(sepolia, 12),
-    MAINNET: fromViemChainToBlockchainDefinition(mainnet, 12),
-    OPTIMISM_SEPOLIA_TESTCHAIN: fromViemChainToBlockchainDefinition(optimismSepolia, 2),
-    OPTIMISM: fromViemChainToBlockchainDefinition(optimism, 12),
-    AVALANCHE_C_CHAIN_FUJI_TESTNET: fromViemChainToBlockchainDefinition(avalanche, 0.5),
-    AVALANCHE_C_CHAIN: fromViemChainToBlockchainDefinition(avalancheFuji, 0.5),
-    ARBITRUM_NOVA: fromViemChainToBlockchainDefinition(arbitrumNova, 0.25),
-    ARBITRUM: fromViemChainToBlockchainDefinition(arbitrum, 0.255),
-    DMC_TESTCHAIN: new BlockchainDefinition(
-        'dmc-testnet',
-        1131,
-        'DefiChain MetaChain Testnet',
-        ['https://dmc.mydefichain.com/testnet', 'https://dmc01.mydefichain.com/testnet'],
-        'DFI',
-        10,
-        'https://blockscout.testnet.ocean.jellyfishsdk.com/',
-    ),
-    DMC_MAINNET: new BlockchainDefinition(
-        'dmc-mainnet',
-        1130,
-        'DefiChain MetaChain',
-        ['https://dmc.mydefichain.com/mainnet', 'https://dmc01.mydefichain.com/mainnet'],
-        'DFI',
-        5,
-        'https://blockscout.mainnet.ocean.jellyfishsdk.com/',
-    ),
-    PBC_TESTNET: fromPBCChainToBlockchainDefinition(PBCChain.TESTNET, 1),
-    PBC_MAINNET: fromPBCChainToBlockchainDefinition(PBCChain.MAINNET, 1),
-};
 
 export const EmptyAddress = '0x0000000000000000000000000000000000000000';
 export const DeadAddress = '0x000000000000000000000000000000000000DEAD';

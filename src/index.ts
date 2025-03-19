@@ -40,6 +40,7 @@ export * from './storage/web3-storage-client.interface.js'
 
 export * from './utils/big-number.utils.js'
 export * from "./utils/chains.js";
+export * from "./utils/chains.extensions.js";
 export * from './utils/contract-pipe.utils.js'
 export * from "./utils/event-emitter.js";
 export * from "./utils/notification.service.js";

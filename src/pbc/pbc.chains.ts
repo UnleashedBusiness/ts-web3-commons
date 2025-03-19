@@ -1,4 +1,4 @@
-import {type BlockchainDefinition, fromPBCChainToBlockchainDefinition} from "../utils/chains.js";
+import {BlockchainDefinition} from "../utils/chains.js";
 
 const PBC_TESTNET_ID = 18500;
 const PBC_MAINNET_ID = 8500;
@@ -33,6 +33,20 @@ export class ChainDefinition {
     public toBlockchainDefinition(): BlockchainDefinition {
         return fromPBCChainToBlockchainDefinition(this, 1)
     }
+}
+
+export function fromPBCChainToBlockchainDefinition(chain: ChainDefinition, blockTime: number): BlockchainDefinition {
+    return new BlockchainDefinition(
+        "chain_" + chain.id,
+        chain.id,
+        chain.name,
+        chain.rpcList,
+        "MPC",
+        blockTime,
+        chain.explorer,
+        true,
+        {"Shards": chain.shards, "SystemContracts": chain.systemContracts}
+    );
 }
 
 export const PBCChain = {

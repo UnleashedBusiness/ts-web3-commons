@@ -1,5 +1,5 @@
 import {BigNumber} from 'bignumber.js';
-import {type JsonRpcOptionalRequest} from 'web3';
+import {type BlockNumberOrTag, type JsonRpcOptionalRequest, type TransactionCall} from 'web3';
 import {BlockchainDefinition, EmptyAddress} from '../utils/chains.js';
 import {decodeMethodReturn, type NonPayableMethodObject, type PayableMethodObject} from 'web3-eth-contract';
 import {v4 as uuidv4} from 'uuid';
@@ -18,10 +18,10 @@ import {
 } from './utils/contract.types.js';
 import {bn_wrap} from "../utils/big-number.utils.js";
 import type {BatchRequest} from "./utils/batch-request.js";
+import {Contract} from "web3-eth-contract";
 
 export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
-    private _contractConnected: Map<string, any> = new Map();
-    private _contractReadOnly: Map<number, any> = new Map();
+    private readonly _contract: Contract<any>;
 
     private readonly _abiFunctional: FunctionalAbi;
     private readonly _abiFunctionalExecutable: FunctionalAbiExecutable<FunctionalAbi>;
@@ -42,6 +42,8 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         protected readonly toolkit: ContractToolkitService,
         protected readonly abi: any,
     ) {
+        this._contract = new Contract(this.abi);
+
         const localAbiFunctional: any = {};
         const localViews: any = {};
         const localMethods: any = {};
@@ -134,48 +136,6 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         return viewsConverted;
     }
 
-    protected initMultiChainContractReadonly(config: BlockchainDefinition, address: string): void {
-        if (address === EmptyAddress || address === undefined || address === null) {
-            throw new Error(`Cannot call empty address (${EmptyAddress}) as contract!`)
-        }
-
-        if (!this._contractReadOnly.has(config.networkId)) {
-            this._contractReadOnly.set(config.networkId, new Map<string, any>());
-        }
-        if (!this._contractReadOnly.get(config.networkId)!.has(address)) {
-            this._contractReadOnly
-                .get(config.networkId)!
-                .set(address, new (this.toolkit.web3Connection.getWeb3ReadOnly(config).eth.Contract)(this.abi, address));
-        }
-    }
-
-    protected getReadonlyMultiChainContract(config: BlockchainDefinition, contractAddress: string): any {
-        if (!this._contractReadOnly.get(config.networkId)?.has(contractAddress)) {
-            this.initMultiChainContractReadonly(config, contractAddress);
-        }
-
-        return this._contractReadOnly.get(config.networkId)!.get(contractAddress);
-    }
-
-    protected async contractConnectedMulti(address: string): Promise<any> {
-        await this.initForConnectedMulti(address);
-        return this._contractConnected.get(address);
-    }
-
-    protected async initForConnectedMulti(address: string) {
-        if (address === EmptyAddress || address === undefined || address === null) {
-            throw new Error(`Cannot call empty address (${EmptyAddress}) as contract!`)
-        }
-
-        if (!this.walletConnection.walletConnected()) {
-            this._contractConnected.delete(address);
-            return;
-        } else if (!this._contractConnected.has(address)) {
-            // @ts-ignore It is the same but tsc does not see it :/
-            this._contractConnected.set(address, new this.walletConnection.web3.eth.Contract(this.abi, address));
-        }
-    }
-
     protected async callView<T extends FunctionalAbiMethodReturnType>(
         config: BlockchainDefinition,
         contractAddress: string,
@@ -184,31 +144,30 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         callback?: (result: T) => Promise<any> | any,
         onError?: (reason: any) => Promise<void> | void,
     ): Promise<T | void> {
-        const contract = this.getReadonlyMultiChainContract(config, contractAddress);
         const definitions = this._abiFunctionalExecutable;
         const call = fetchMethod(definitions);
-        const method = contract.methods[call.definition.name](...call.args);
+        const method = this._contract.methods[call.definition.name](...call.args);
 
+        const jsonRpcCall: JsonRpcOptionalRequest = {
+            jsonrpc: '2.0',
+            id: uuidv4(),
+            method: 'eth_call',
+            params: [
+                {
+                    to: contractAddress,
+                    data: method.encodeABI(),
+                },
+                'latest',
+            ],
+        };
         if (typeof batch !== 'undefined') {
-            const jsonRpcCall: JsonRpcOptionalRequest = {
-                jsonrpc: '2.0',
-                id: uuidv4(),
-                method: 'eth_call',
-                params: [
-                    {
-                        to: contractAddress,
-                        data: method.encodeABI(),
-                    },
-                    'latest',
-                ],
-            };
-
             batch.add(jsonRpcCall, async response => {
                 return Promise.resolve(callback!(decodeMethodReturn(call.definition, response) as T));
             }, onError !== undefined ? async reason => Promise.resolve(onError!(reason)) : undefined);
         } else {
-            return method.call()
-                .then((x: any) => x as T)
+            let client = this.toolkit.web3Connection.getWeb3ReadOnly(config);
+            return client.eth.call(jsonRpcCall.params![0] as TransactionCall, jsonRpcCall.params![1] as BlockNumberOrTag)
+                .then(response => decodeMethodReturn(call.definition, response) as T)
                 .catch((error: any) => console.log(error));
         }
     }
@@ -222,17 +181,16 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     ): MethodRunnable {
         return {
             target: contractAddress,
-            getData: () => this.getRunMethodDataMulti(contractAddress, (contract) => fetchMethod(contract, EmptyAddress)),
+            getData: () => this.getRunMethodDataMulti((contract) => fetchMethod(contract, EmptyAddress)),
             execute: () => this.runMethodConnectedMulti(contractAddress, fetchMethod, validation, getValue, getGas),
+            estimateGas: (config: BlockchainDefinition, from?: string) => this.runMethodGasEstimateMulti(config, contractAddress, fetchMethod, from, getValue)
         };
     }
 
     protected async getRunMethodDataMulti(
-        contractAddress: string,
         fetchMethod: (contract: any) => Promise<PayableMethodObject | NonPayableMethodObject>,
     ): Promise<string> {
-        const contract = await this.contractConnectedMulti(contractAddress);
-        return (await fetchMethod(contract)).encodeABI();
+        return (await fetchMethod(this._contract)).encodeABI();
     }
 
     protected async runMethodConnectedMulti(
@@ -242,23 +200,18 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         getValue?: () => Promise<BigNumber>,
         getGas?: () => Promise<BigNumber>,
     ): Promise<void> {
-        const contract = await this.contractConnectedMulti(contractAddress);
-        if (typeof contract === 'undefined') {
-            throw new Error('Failed to initialize contract for: ' + contractAddress);
-        }
-
         return new Promise(async (resolve, reject) => {
             try {
                 this.toolkit.transactionHelper.start();
                 if (validation) await validation();
 
                 const value = getValue ? await getValue() : 0;
-                const method = await fetchMethod(contract, this.walletConnection.accounts[0]);
+                const method = await fetchMethod(this._contract, this.walletConnection.accounts[0]);
 
                 const estimateGas =
                     getGas !== undefined
                         ? await getGas()
-                        : await this.runMethodGasEstimateMulti(contractAddress, fetchMethod, getValue);
+                        : await this.runMethodGasEstimateMulti(this.walletConnection.blockchain, contractAddress, fetchMethod, this.walletConnection.accounts[0], getValue);
 
                 const tx = {
                     chain: SUPPORTED_WAGMI_CHAINS.filter((x) => x.id === this.walletConnection.blockchain.networkId).pop(),
@@ -346,25 +299,24 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     }
 
     protected async runMethodGasEstimateMulti(
+        config: BlockchainDefinition,
         contractAddress: string,
         fetchMethod: (contract: any, connectedAddress: string) => Promise<PayableMethodObject | NonPayableMethodObject>,
+        from?: string,
         getValue?: () => Promise<BigNumber>,
     ): Promise<BigNumber> {
-        const contract = await this.getReadonlyMultiChainContract(this.walletConnection.blockchain, contractAddress);
-        if (typeof contract === 'undefined') return new BigNumber(0);
-
         const value = getValue ? await getValue() : new BigNumber(0);
-        const method = await fetchMethod(contract, this.walletConnection.accounts[0]);
+        const method = await fetchMethod(this._contract, from ?? EmptyAddress);
 
         const tx = {
-            chain: SUPPORTED_WAGMI_CHAINS.filter((x) => x.id === this.walletConnection.blockchain.networkId).pop(),
-            account: this.walletConnection.accounts[0],
+            chain: SUPPORTED_WAGMI_CHAINS.filter((x) => x.id === config.networkId).pop(),
+            account: (from ?? EmptyAddress) as `0x${string}`,
             to: contractAddress as `0x${string}`,
             data: method.encodeABI() as `0x${string}`,
             value: BigInt(value.toFixed()),
         };
-        const estimate = await this.walletConnection
-            .getReadOnlyClient(this.walletConnection.blockchain)
+        const estimate = await this.toolkit.web3Connection
+            .getReadOnlyClient(config)
             .estimateGas(tx);
 
         return bn_wrap(estimate);
@@ -389,7 +341,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
 
 export class MethodRunnable {
     public target: string = '';
-    public execute: () => Promise<void> = async () => {
-    };
+    public execute: () => Promise<void> = async () => {};
     public getData: () => Promise<string> = async () => '';
+    public estimateGas: (config: BlockchainDefinition, from?: string) => Promise<BigNumber> = async () => bn_wrap(0);
 }

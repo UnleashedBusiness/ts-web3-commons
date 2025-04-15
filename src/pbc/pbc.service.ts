@@ -97,9 +97,15 @@ export class PartisiaBlockchainService {
         let state = undefined;
         let namedTypes: any = {};
         if (loadState) {
-            const stateString = await client.getContractStateTraverse(contractAddress);
-            let reader = new StateReader(Buffer.from(stateString!.data, "base64"), state_abi.contract);
-            state = reader.readState();
+            if (data!.type === "SYSTEM") {
+                let stateData = await client.getContractData<string>(contractAddress, true, false);
+                let reader = new StateReader(Buffer.from(stateData!.serializedContract, "base64"), state_abi.contract);
+                state = reader.readState();
+            } else {
+                const stateString = await client.getContractStateTraverse(contractAddress);
+                let reader = new StateReader(Buffer.from(stateString!.data, "base64"), state_abi.contract);
+                state = reader.readState();
+            }
         }
 
         for (let type of state_abi.contract.namedTypes) {

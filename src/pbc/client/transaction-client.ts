@@ -22,7 +22,7 @@ export class TransactionFailedError extends Error {
  * the UI.
  */
 export class TransactionClient {
-  public static readonly TRANSACTION_TTL: number = 60_000;
+  public static readonly TRANSACTION_TTL: number = 300_000;
   private static readonly DELAY_BETWEEN_RETRIES = 1_000;
 
   private static readonly MAX_TRIES = TransactionClient.TRANSACTION_TTL / this.DELAY_BETWEEN_RETRIES;

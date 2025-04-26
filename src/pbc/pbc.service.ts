@@ -1,6 +1,5 @@
-import {NamedTypeSpec} from "@partisiablockchain/abi-client/target/main/types/Abi.js";
 import type {ChainDefinition} from "./pbc.chains.js";
-import {AbiParser, FnRpcBuilder, type ScValue, StateReader} from "@partisiablockchain/abi-client";
+import {AbiParser, RpcBuilder, type ScValue, StateReader, NamedTypeSpec} from "@partisiablockchain/abi-client";
 import {ShardedClient} from "./client/sharded-client.js";
 import type {DefaultContractSerialization} from "./dto/contract-data.dto.js";
 import type {ConnectedWalletInterface} from "./wallet-connection/connected-wallet.interface.js";
@@ -26,7 +25,7 @@ export class PartisiaBlockchainService {
         );
     }
 
-    public async send(connectedWallet: ConnectedWalletInterface, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {
+    public async send(connectedWallet: ConnectedWalletInterface, contractAddress: string, methodName: string, methodCallBuilder: (builder: RpcBuilder) => Buffer, gasCost: number): Promise<string> {
         if (connectedWallet === undefined || connectedWallet.chain === undefined) {
             throw new Error("connected wallet must be provided for execution of transactions!");
         }
@@ -41,7 +40,7 @@ export class PartisiaBlockchainService {
         let data = await client.getContractData<DefaultContractSerialization>(contractAddress, false, false);
 
         let contract_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
-        const methodCallDataBuilder = new FnRpcBuilder(methodName, contract_abi.contract);
+        const methodCallDataBuilder = new RpcBuilder(contract_abi.contract(), methodName);
 
         const transactionResult = await transactionClient.sendTransactionAndWait(
             contractAddress,
@@ -99,16 +98,16 @@ export class PartisiaBlockchainService {
         if (loadState) {
             if (data!.type === "SYSTEM") {
                 let stateData = await client.getContractData<string>(contractAddress, true, false);
-                let reader = new StateReader(Buffer.from(stateData!.serializedContract, "base64"), state_abi.contract);
+                let reader = StateReader.create(Buffer.from(stateData!.serializedContract, "base64"), state_abi.contract());
                 state = reader.readState();
             } else {
                 const stateString = await client.getContractStateTraverse(contractAddress);
-                let reader = new StateReader(Buffer.from(stateString!.data, "base64"), state_abi.contract);
+                let reader = StateReader.create(Buffer.from(stateString!.data, "base64"), state_abi.contract());
                 state = reader.readState();
             }
         }
 
-        for (let type of state_abi.contract.namedTypes) {
+        for (let type of state_abi.contract().namedTypes) {
             namedTypes[type.name] = type;
         }
 
@@ -116,7 +115,7 @@ export class PartisiaBlockchainService {
         for (let treeId of loadAvlTreeIndexes) {
             loadedTrees[treeId] = (isNamedValue, keyType, valueType, keyConverter, valueConverter) => {
                 return new AvlTreeReader(
-                    chainDefinition, contractAddress, state_abi.contract, treeId, isNamedValue, keyType, valueType, keyConverter, valueConverter
+                    chainDefinition, contractAddress, state_abi.contract(), treeId, isNamedValue, keyType, valueType, keyConverter, valueConverter
                 );
             }
         }

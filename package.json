@@ -21,7 +21,7 @@
   },
   "peerDependencies": {
     "@deepkit/bson": "=1.0.1-alpha.156",
-    "@partisiablockchain/abi-client": ">=5.51.0",
+    "@partisiablockchain/abi-client": ">=5.172.0",
     "@partisiablockchain/zk-client": ">=5.66.0",
     "@scure/bip32": ">=1.6.2",
     "axios": ">=1.5.1",

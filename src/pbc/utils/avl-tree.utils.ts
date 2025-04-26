@@ -59,7 +59,7 @@ export class AvlTreeReader<K extends AvlTreeKey, V> {
     }
 
     private convertBufferValueInternal(valueBuffer: Buffer): V | undefined {
-        let stateReader = new StateReader(valueBuffer, this.contractAbi);
+        let stateReader = StateReader.create(valueBuffer, this.contractAbi);
 
         return this.convertStateReaderValueInternal(stateReader);
     }
@@ -71,7 +71,7 @@ export class AvlTreeReader<K extends AvlTreeKey, V> {
     }
 
     private convertKeyInternal(keyBase64: string): K {
-        const keyRaw = new StateReader(Buffer.from(keyBase64, "base64"), this.contractAbi).readGeneric(this.keyType);
+        const keyRaw = StateReader.create(Buffer.from(keyBase64, "base64"), this.contractAbi).readGeneric(this.keyType);
 
         return this.keyConverter(keyRaw);
     }

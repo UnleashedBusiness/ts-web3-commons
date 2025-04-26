@@ -1,4 +1,4 @@
-import {TypeIndex, type TypeSpec} from "@partisiablockchain/abi-client/target/main/types/Abi.js";
+import {TypeIndex, type TypeSpec} from "@partisiablockchain/abi-client";
 
 export const HashTypeSpec: TypeSpec = {
     typeIndex: TypeIndex.Hash

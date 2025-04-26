@@ -1,5 +1,4 @@
-import type {ScValue} from "@partisiablockchain/abi-client";
-import {NamedTypeSpec} from "@partisiablockchain/abi-client/target/main/types/Abi.js";
+import type {NamedTypeSpec, ScValue} from "@partisiablockchain/abi-client";
 import type {ChainDefinition} from "./pbc.chains.js";
 import type {AvlTreeReaderBuilder} from "./utils/avl-tree.utils.js";
 

@@ -1,5 +1,5 @@
-import type {TypeSpec} from "@partisiablockchain/abi-client/target/main/types/Abi.js";
-import type {StructTypeSpec} from "@partisiablockchain/abi-client/target/main/types/StructTypeSpec.js";
+import type {TypeSpec} from "@partisiablockchain/abi-client";
+import type {StructTypeSpec} from "@partisiablockchain/abi-client";
 import {Buffer} from "buffer";
 import {BN, ContractAbi, type ScValue, StateReader} from "@partisiablockchain/abi-client";
 import type {ChainDefinition} from "../pbc.chains.js";

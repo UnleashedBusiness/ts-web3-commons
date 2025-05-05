@@ -220,11 +220,12 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
           data: method.encodeABI() as `0x${string}`,
           gas: BigInt(estimateGas.multipliedBy(this.toolkit.generalConfig.estimateGasMultiplier).decimalPlaces(0).toFixed()),
           value: BigInt(value.toFixed()),
-          txnType: '0x0',
+          type: "legacy",
         };
 
         let transactionHash: `0x${string}`;
         if (this.walletConnection.isLocalAccountConnected()) {
+          //@ts-ignore
           const prepared = await this.walletConnection.walletClient.prepareTransactionRequest(tx);
           const signature = await this.walletConnection.walletClient.signTransaction({
             ...prepared,

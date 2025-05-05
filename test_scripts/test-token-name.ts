@@ -16,11 +16,11 @@ const toolkit = new ContractToolkitService(web3Connection, transactionHelper, {}
 
 const contract = new Web3Contract<Erc20AbiFunctional>(toolkit, Erc20Abi);
 
-const config = blockchainIndex.MUMBAI_TESTCHAIN;
+const config = blockchainIndex.AMOY_TESTCHAIN;
 const client = web3Connection.getWeb3ReadOnly(config);
 
 const batch = new BatchRequest(client);
-const token = '0x9c3c9283d3e44854697cd22d3faa240cfb032889';
+const token = '0xacD106d79fC538afAc752D4973BFe613353D8165';
 /*
 contract.views.name(config, token, {}).then((value) => console.log(value));
 contract.views.name(config, token, {}, batch).then((result) => console.log(result));

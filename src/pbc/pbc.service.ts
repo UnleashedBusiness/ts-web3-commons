@@ -19,7 +19,7 @@ export class PartisiaBlockchainService {
         );
     }
 
-    public async callMulti(chainDefinition: ChainDefinition, contractAddress: string, views: ((state: Record<string, ScValue> | undefined, trees: Record<number, AvlTreeReaderBuilder>, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadState:boolean, loadAvlTreeIndexes: number[] = []): Promise<void> {
+    public async callMulti(chainDefinition: ChainDefinition, contractAddress: string, views: ((state: Record<string, ScValue> | undefined, trees: Record<number, AvlTreeReaderBuilder>, namedTypes: Record<string, NamedTypeSpec & {typeIndex: number}>) => Promise<void>)[], loadState:boolean, loadAvlTreeIndexes: number[] = []): Promise<void> {
         await this.fetchContractState(chainDefinition, contractAddress, loadState, loadAvlTreeIndexes).then(
             args => Promise.all(views.map(x => x(...args)))
         );
@@ -84,7 +84,7 @@ export class PartisiaBlockchainService {
         return transactionResult.transactionHash;
     }
 
-    private async fetchContractState(chainDefinition: ChainDefinition, contractAddress: string, loadState: boolean, loadAvlTreeIndexes: number[] = []): Promise<[Record<string, ScValue> | undefined, Record<number, AvlTreeReaderBuilder>, any]> {
+    private async fetchContractState(chainDefinition: ChainDefinition, contractAddress: string, loadState: boolean, loadAvlTreeIndexes: number[] = []): Promise<[Record<string, ScValue> | undefined, Record<number, AvlTreeReaderBuilder>, Record<string, NamedTypeSpec & {typeIndex: number}>]> {
         const client = new ShardedClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
@@ -94,7 +94,7 @@ export class PartisiaBlockchainService {
         let state_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
 
         let state = undefined;
-        let namedTypes: any = {};
+        let namedTypes: Record<string, NamedTypeSpec & {typeIndex: number}> = {};
         if (loadState) {
             if (data!.type === "SYSTEM") {
                 let stateData = await client.getContractData<string>(contractAddress, true, false);
@@ -107,8 +107,8 @@ export class PartisiaBlockchainService {
             }
         }
 
-        for (let type of state_abi.contract().namedTypes) {
-            namedTypes[type.name] = type;
+        for (let [typeIndex, type] of state_abi.contract().namedTypes.entries()) {
+            namedTypes[type.name] = {typeIndex, ...type};
         }
 
         let loadedTrees: Record<number, AvlTreeReaderBuilder> = {};

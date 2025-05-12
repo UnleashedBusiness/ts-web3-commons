@@ -7,7 +7,7 @@ import type {
 import {HttpClient} from "./http-client.js";
 import type {AccountData} from "../dto/account-data.dto.js";
 import type {ContractCore, ContractData} from "../dto/contract-data.dto.js";
-import {BaseClient} from "./base-client.js";
+import { BaseClient, type ClientResponse } from './base-client.js';
 
 export interface ShardSuccessfulTransactionResponse extends PutTransactionWasSuccessful {
     shard: ShardId;
@@ -56,7 +56,7 @@ export class ShardedClient extends BaseClient {
         }
     }
 
-    public getAccountData(address: string): Promise<AccountData | undefined> {
+    public getAccountData(address: string): Promise<ClientResponse<AccountData>> {
         return this.clientForAddress(address).getAccountData(address);
     }
 
@@ -64,19 +64,18 @@ export class ShardedClient extends BaseClient {
         address: string,
         withState: boolean,
         withTrees: boolean
-    ): Promise<ContractData<T> | undefined>;
+    ): Promise<ClientResponse<ContractData<T>>>;
     public getContractData<T>(
         address: string,
         withState: boolean,
         withTrees: boolean = false
-    ): Promise<ContractData<T> | ContractCore | undefined> {
+    ): Promise<ClientResponse<ContractData<T> | ContractCore>> {
         const requireState = withState === undefined || withState;
 
         return this.clientForAddress(address).getContractData(address, requireState, withTrees);
     }
 
-
-    public getContractStateTraverse(address: string): Promise<{ data: string } | undefined> {
+    public getContractStateTraverse(address: string): Promise<ClientResponse<{ data: string }>> {
         return this.clientForAddress(address).getContractStateTraverse(address);
     }
 
@@ -84,11 +83,11 @@ export class ShardedClient extends BaseClient {
         shard: ShardId,
         identifier: string,
         requireFinal?: boolean
-    ): Promise<ExecutedTransactionDto | undefined> {
+    ): Promise<ClientResponse<ExecutedTransactionDto>> {
         return this.getClient(shard).getExecutedTransaction(identifier, requireFinal);
     }
 
-    public putTransaction(transaction: Buffer): Promise<TransactionPointer | undefined> {
+    public putTransaction(transaction: Buffer): Promise<ClientResponse<TransactionPointer>> {
         const byteJson = { payload: transaction.toString("base64") };
         return this.putRequest(this.baseUrl + "/chain/transactions", byteJson);
     }

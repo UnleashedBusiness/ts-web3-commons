@@ -1,5 +1,5 @@
-import {Buffer} from "buffer";
-import {BaseClient} from "./base-client.js";
+import { Buffer } from 'buffer';
+import { BaseClient, type ClientResponse } from './base-client.js';
 
 export class AvlClient extends BaseClient {
     private readonly host: string;
@@ -12,45 +12,54 @@ export class AvlClient extends BaseClient {
         this.shards = shards;
     }
 
-    public getContractState(address: string): Promise<Buffer | undefined> {
-        return this.getRequest<Buffer>(this.contractStateQueryUrl(address) + "?stateOutput=binary");
+    public getContractState(address: string): Promise<ClientResponse<Buffer>> {
+        return this.getRequest<Buffer>(this.contractStateQueryUrl(address) + '?stateOutput=binary');
     }
 
     public async getContractStateAvlValue(
         address: string,
         treeId: number,
-        key: Buffer
-    ): Promise<Buffer | undefined> {
-        const data = await this.getRequest<{ data: string }>(
-            `${this.contractStateQueryUrl(address)}/avl/${treeId}/${key.toString("hex")}`
+        key: Buffer,
+    ): Promise<ClientResponse<Buffer>> {
+        const data: ClientResponse<{ data: string } | Buffer> = await this.getRequest<{ data: string }>(
+            `${this.contractStateQueryUrl(address)}/avl/${treeId}/${key.toString('hex')}`,
         );
 
-        return data === undefined ? undefined : Buffer.from(data.data, "base64");
+        if (data.data !== undefined) {
+            data.data = Buffer.from((data.data as { data: string }).data, 'base64');
+        }
+
+        return data as ClientResponse<Buffer>;
     }
 
     public async getContractStateAvlSize(
         address: string,
-        treeId: number
-    ): Promise<number | undefined> {
-        const data = await this.getRequest<{ size: number }>(
-            `${this.contractStateQueryUrl(address)}/avl/${treeId}`
+        treeId: number,
+    ): Promise<ClientResponse<number>> {
+        const data: ClientResponse<{ size: number } | number> = await this.getRequest<{ size: number }>(
+            `${this.contractStateQueryUrl(address)}/avl/${treeId}`,
         );
-        return data === undefined ? undefined : data.size;
+
+        if (data.data !== undefined) {
+            data.data = (data.data as { size: number }).size;
+        }
+
+        return data as ClientResponse<number>;
     }
 
     public getContractStateAvlNextN(
         address: string,
         treeId: number,
         key: Buffer | undefined,
-        n: number
-    ): Promise<Array<Record<string, string>> | undefined> {
+        n: number,
+    ): Promise<ClientResponse<Array<Record<string, string>>>> {
         if (key === undefined) {
             return this.getRequest<Array<Record<string, string>>>(
-                `${this.contractStateQueryUrl(address)}/avl/${treeId}/next?n=${n}`
+                `${this.contractStateQueryUrl(address)}/avl/${treeId}/next?n=${n}`,
             );
         } else {
             return this.getRequest<Array<Record<string, string>>>(
-                `${this.contractStateQueryUrl(address)}/avl/${treeId}/next/${key.toString("hex")}?n=${n}`
+                `${this.contractStateQueryUrl(address)}/avl/${treeId}/next/${key.toString('hex')}?n=${n}`,
             );
         }
     }
@@ -61,7 +70,7 @@ export class AvlClient extends BaseClient {
 
     private shardForAddress(address: string): string {
         const numOfShards = this.shards.length;
-        const buffer = Buffer.from(address, "hex");
+        const buffer = Buffer.from(address, 'hex');
         const shardIndex = Math.abs(buffer.readInt32BE(17)) % numOfShards;
         return this.shards[shardIndex];
     }

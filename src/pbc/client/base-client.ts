@@ -1,52 +1,49 @@
 // Helper functions for building and sending get requests, and receiving json responses.
 
+import axios, { AxiosHeaders } from 'axios';
+
+export type ClientResponse<D> = {
+  code: number,
+  data: D | undefined
+}
+
 export class BaseClient {
-  protected static readonly getHeaders: HeadersInit = {
+  protected static readonly getHeaders = {
     Accept: "application/json, text/plain, */*",
   };
 
-  protected static readonly postHeaders: HeadersInit = {
+  protected static readonly postHeaders = {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
   };
 
-  protected buildOptions<T>(method: RequestType, headers: HeadersInit, entityBytes: T) {
-    const result: RequestInit = { method, headers, body: null };
-
-    if (entityBytes != null) {
-      result.body = JSON.stringify(entityBytes);
+  protected async getRequest<R>(url: string, params: Record<string, any> = {}): Promise<ClientResponse<R>> {
+    const headers = new AxiosHeaders();
+    for (const [name, header] of Object.entries(BaseClient.getHeaders)) {
+      headers.set(name, header);
     }
-    return result;
+
+    const response = await axios.get(url, { headers: headers, params: params, validateStatus: () => true });
+    return ({ code: response.status, data: response.data });
   }
 
-  protected getRequest<R>(url: string): Promise<R | undefined> {
-    const options = this.buildOptions("GET", BaseClient.getHeaders, null);
-    return this.handleFetch(fetch(url, options));
-  }
-
-  protected putRequest<R, T>(url: string, object: T): Promise<R | undefined> {
-    const options = this.buildOptions("PUT", BaseClient.postHeaders, object);
-    return this.handleFetch(fetch(url, options));
-  }
-
-  protected postRequest<R, T>(url: string, object: T): Promise<R | undefined> {
-    const options = this.buildOptions("POST", BaseClient.postHeaders, object);
-    return this.handleFetch(fetch(url, options));
-  }
-
-  protected async handleFetch<T>(promise: Promise<Response>): Promise<T | undefined> {
-    try {
-      let response = await promise;
-
-      if (response.status === 200) {
-        return response.json();
-      } else {
-        return undefined;
-      }
-    } catch (e) {
-      return undefined;
+  protected async putRequest<R, T>(url: string, object: T): Promise<ClientResponse<R>> {
+    const headers = new AxiosHeaders();
+    for (const [name, header] of Object.entries(BaseClient.postHeaders)) {
+      headers.set(name, header);
     }
+
+    const response = await axios.put(url, object, { headers: headers, validateStatus: () => true });
+    return ({ code: response.status, data: response.data });
+  }
+
+  protected async postRequest<R, T>(url: string, object: T): Promise<ClientResponse<R>> {
+    const headers = new AxiosHeaders();
+    for (const [name, header] of Object.entries(BaseClient.postHeaders)) {
+      headers.set(name, header);
+    }
+
+    const response = await axios.post(url, object, { headers: headers, validateStatus: () => true });
+    return ({ code: response.status, data: response.data });
   }
 }
-
-export type RequestType = "GET" | "PUT" | "POST";

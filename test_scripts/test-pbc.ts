@@ -79,7 +79,7 @@ export class SignerContractInstance extends BasePBCSmartContractInstance<SignerC
 
 new Promise(async () => {
     const chain = PBCChain.TESTNET;
-    chain.rpcList[0] = "https://pbc-testnet.unleashed-business.com:8443";
+    chain.rpcList[0] = "https://pbc-testnet.unleashed-business.com";
     const privateKey = CryptoUtils.generateKeyPair();
     const address = CryptoUtils.privateKeyToAccountAddress(privateKey.getPrivate().toString(16));
     const executorWallet = new PrivateKeyConnectedWallet(

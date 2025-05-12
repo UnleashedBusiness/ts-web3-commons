@@ -27,31 +27,54 @@ export class AvlTreeReader<K extends AvlTreeKey, V> {
     }
 
     public async get(key: K): Promise<V | undefined> {
-        let valueBuffer = await this.client.getContractStateAvlValue(this.contractAddress, this.treeId, key.toBuffer());
-        if (valueBuffer === undefined) return undefined;
+        let valueBufferResponse = await this.client.getContractStateAvlValue(this.contractAddress, this.treeId, key.toBuffer());
+        if (valueBufferResponse.code === 404) return undefined;
 
-        return this.convertBufferValueInternal(valueBuffer);
+        if (valueBufferResponse.code !== 200 || !valueBufferResponse.data) {
+            throw new Error(`Could not fetch item from ${this.contractAddress} tree ${this.treeId} with key ${key.toBuffer().toString("hex")}! Code: ${valueBufferResponse.code}, Data: ${valueBufferResponse.data}`);
+        }
+
+        return this.convertBufferValueInternal(valueBufferResponse.data);
     }
 
     public async first(count: number): Promise<{key: K, value: V}[]> {
-        let values = await this.client.getContractStateAvlNextN(this.contractAddress, this.treeId, undefined, count);
+        let valuesResponse = await this.client.getContractStateAvlNextN(this.contractAddress, this.treeId, undefined, count);
+        if (valuesResponse.code === 404) return [];
 
-        return this.convertValueRecordArray(values ?? []);
+        if (valuesResponse.code !== 200 || !valuesResponse.data) {
+            throw new Error(`Could not fetch first ${count} items from ${this.contractAddress} tree ${this.treeId}! Code: ${valuesResponse.code}, Data: ${valuesResponse.data}`);
+        }
+
+        return this.convertValueRecordArray(valuesResponse.data);
     }
 
     public async next(from: K, count: number): Promise<{key: K, value: V}[]> {
         let values = await this.client.getContractStateAvlNextN(this.contractAddress, this.treeId, from.toBuffer(), count);
+        if (values.code === 404) return [];
 
-        return this.convertValueRecordArray(values ?? []);
+        if (values.code !== 200 || !values.data) {
+            throw new Error(`Could not fetch next ${count} items after ${from.toBuffer().toString("hex")} from ${this.contractAddress} tree ${this.treeId}! Code: ${values.code}, Data: ${values.data}`);
+        }
+
+        return this.convertValueRecordArray(values.data);
     }
 
     public async all(): Promise<{key: K, value: V}[]> {
         let size = await this.client.getContractStateAvlSize(this.contractAddress, this.treeId);
-        if (size === undefined) return [];
+        if (size.code === 404) return [];
 
-        let values = await this.client.getContractStateAvlNextN(this.contractAddress, this.treeId, undefined, size);
+        if (size.code !== 200 || !size.data) {
+            throw new Error(`Could not fetch size for ${this.contractAddress} tree ${this.treeId}! Code: ${size.code}, Data: ${size.data}`);
+        }
 
-        return this.convertValueRecordArray(values ?? []);
+        let values = await this.client.getContractStateAvlNextN(this.contractAddress, this.treeId, undefined, size.data);
+        if (values.code === 404) return [];
+
+        if (values.code !== 200 || !values.data) {
+            throw new Error(`Could not fetch all items from ${this.contractAddress} tree ${this.treeId}! Code: ${values.code}, Data: ${values.data}`);
+        }
+
+        return this.convertValueRecordArray(values.data);
     }
 
     private convertBase64ValueInternal(valueBase64: string): V | undefined {

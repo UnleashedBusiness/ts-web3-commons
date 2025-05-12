@@ -91,7 +91,10 @@ export class PartisiaBlockchainService {
         );
 
         let data = await client.getContractData<string>(contractAddress, false, false);
-        let state_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
+        if (data === undefined) {
+          throw new Error("Failed to fetch contract abi! HTTP returned status != 200.")
+        }
+        let state_abi = new AbiParser(Buffer.from(data.abi, 'base64')).parseAbi();
 
         let state = undefined;
         let namedTypes: Record<string, NamedTypeSpec & {typeIndex: number}> = {};
@@ -102,7 +105,11 @@ export class PartisiaBlockchainService {
                 state = reader.readState();
             } else {
                 const stateString = await client.getContractStateTraverse(contractAddress);
-                let reader = StateReader.create(Buffer.from(stateString!.data, "base64"), state_abi.contract());
+                if (stateString === undefined) {
+                  throw new Error("Failed to fetch contract state! HTTP returned status != 200.")
+                }
+
+                let reader = StateReader.create(Buffer.from(stateString.data, "base64"), state_abi.contract());
                 state = reader.readState();
             }
         }

@@ -24,6 +24,7 @@ export class AvlClient extends BaseClient {
         const data = await this.getRequest<{ data: string }>(
             `${this.contractStateQueryUrl(address)}/avl/${treeId}/${key.toString("hex")}`
         );
+
         return data === undefined ? undefined : Buffer.from(data.data, "base64");
     }
 

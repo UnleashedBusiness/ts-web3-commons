@@ -25,7 +25,7 @@ export class AvlClient extends BaseClient {
             `${this.contractStateQueryUrl(address)}/avl/${treeId}/${key.toString('hex')}`,
         );
 
-        if (data.data !== undefined) {
+        if (data.code === 200 && data.data !== undefined) {
             data.data = Buffer.from((data.data as { data: string }).data, 'base64');
         }
 
@@ -40,7 +40,7 @@ export class AvlClient extends BaseClient {
             `${this.contractStateQueryUrl(address)}/avl/${treeId}`,
         );
 
-        if (data.data !== undefined) {
+        if (data.code === 200 && data.data !== undefined) {
             data.data = (data.data as { size: number }).size;
         }
 

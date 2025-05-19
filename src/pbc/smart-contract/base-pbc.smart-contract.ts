@@ -1,4 +1,3 @@
-import {RpcBuilder} from "@partisiablockchain/abi-client";
 import {PBCContractMultiCall} from "./pbc-contract-multi-call.js";
 import type {PartisiaBlockchainService} from "../pbc.service.js";
 import type {ChainDefinition} from "../pbc.chains.js";
@@ -10,6 +9,7 @@ import {
 } from "../pbc.types.js";
 import type {ConnectedWalletInterface} from "../wallet-connection/connected-wallet.interface.js";
 import {TransactionRunningHelperService} from "../../utils/transaction-running-helper.service.js";
+import type { RpcContractBuilder } from '@partisiablockchain/abi-client';
 
 export abstract class BasePBCSmartContract {
     protected constructor(
@@ -54,7 +54,7 @@ export abstract class BasePBCSmartContract {
         }
     }
 
-    public async send(chainDefinition: ChainDefinition, contractAddress: string, methodName: string, methodCallBuilder: (builder: RpcBuilder) => Buffer, gasCost: number): Promise<string> {
+    public async send(chainDefinition: ChainDefinition, contractAddress: string, methodName: string, methodCallBuilder: (builder: RpcContractBuilder) => Buffer, gasCost: number): Promise<string> {
         if (!this.connectedWallet.isConnected) {
             throw new Error("Wallet not connected!");
         }
@@ -123,7 +123,7 @@ export class BasePBCSmartContractInstance<C extends BasePBCSmartContract> {
         }
     }
 
-    public send(methodName: string, methodCallBuilder: (builder: RpcBuilder) => Buffer, gasCost: number): Promise<string> {
+    public send(methodName: string, methodCallBuilder: (builder: RpcContractBuilder) => Buffer, gasCost: number): Promise<string> {
         return this.contract.send(
             this.chain,
             this.address,

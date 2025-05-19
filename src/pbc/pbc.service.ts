@@ -1,5 +1,11 @@
 import type {ChainDefinition} from "./pbc.chains.js";
-import {AbiParser, RpcBuilder, type ScValue, StateReader, NamedTypeSpec} from "@partisiablockchain/abi-client";
+import {
+    AbiParser,
+    type ScValue,
+    StateReader,
+    NamedTypeSpec,
+    RpcContractBuilder,
+} from '@partisiablockchain/abi-client';
 import {ShardedClient} from "./client/sharded-client.js";
 import type {DefaultContractSerialization} from "./dto/contract-data.dto.js";
 import type {ConnectedWalletInterface} from "./wallet-connection/connected-wallet.interface.js";
@@ -24,7 +30,7 @@ export class PartisiaBlockchainService {
         );
     }
 
-    public async send(connectedWallet: ConnectedWalletInterface, contractAddress: string, methodName: string, methodCallBuilder: (builder: RpcBuilder) => Buffer, gasCost: number): Promise<string> {
+    public async send(connectedWallet: ConnectedWalletInterface, contractAddress: string, methodName: string, methodCallBuilder: (builder: RpcContractBuilder) => Buffer, gasCost: number): Promise<string> {
         if (connectedWallet === undefined || connectedWallet.chain === undefined) {
             throw new Error("connected wallet must be provided for execution of transactions!");
         }
@@ -42,7 +48,7 @@ export class PartisiaBlockchainService {
         }
 
         let contract_abi = new AbiParser(Buffer.from(data.data.abi, 'base64')).parseAbi();
-        const methodCallDataBuilder = new RpcBuilder(contract_abi.contract(), methodName);
+        const methodCallDataBuilder = new RpcContractBuilder(contract_abi.contract(), methodName);
 
         const transactionResult = await transactionClient.sendTransactionAndWait(
             contractAddress,

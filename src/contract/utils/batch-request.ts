@@ -37,6 +37,10 @@ export class BatchRequest {
 
                 let i = 0;
                 for (const response of responses) {
+                    if (response.error !== undefined && response.error.code !== undefined) {
+                        reject(`Error received from ETH json rpc with code ${response.error.code}. Message: ${response.error.data}, Data: ${JSON.stringify(response.error.data)}`);
+                        return;
+                    }
                     this.callbacks[response.id!](response.result as string)
                         .then(() => {
                             i += 1;

@@ -20,6 +20,7 @@ export class BatchExecutor {
 
   public async execute(config: { timeout: number; } = { timeout: 10_000 }): Promise<void> {
     await Promise.all(this.builders);
+
     await this.batch.execute(config);
   }
 

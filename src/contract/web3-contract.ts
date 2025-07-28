@@ -199,7 +199,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
     validation?: () => Promise<void>,
     getValue?: () => Promise<BigNumber>,
     getGas?: () => Promise<BigNumber>,
-  ): Promise<void> {
+  ): Promise<string> {
     return new Promise(async (resolve, reject) => {
       try {
         this.toolkit.transactionHelper.start();
@@ -266,7 +266,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
         if (result?.status === 'success') {
           this.toolkit.transactionHelper.success(result!.transactionHash.toString());
           await this.walletConnection.reloadBalanceCache();
-          resolve();
+          resolve(result!.transactionHash.toString());
         } else {
           const reason = JSON.stringify(result?.logs);
           this.toolkit.transactionHelper.failed(reason);
@@ -343,8 +343,7 @@ export class Web3Contract<FunctionalAbi extends FunctionalAbiDefinition> {
 
 export class MethodRunnable {
   public target: string = '';
-  public execute: () => Promise<void> = async () => {
-  };
+  public execute: () => Promise<string> = async () => '';
   public getData: () => Promise<string> = async () => '';
   public estimateGas: (config: BlockchainDefinition, from?: string) => Promise<BigNumber> = async () => bn_wrap(0);
 }

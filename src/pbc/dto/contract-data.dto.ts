@@ -20,7 +20,7 @@
  * Types specifying the structure of the contract data returned from the PBC client.
  */
 
-export type ContractType = "PUBLIC";
+export type ContractType = "PUBLIC" | "SYSTEM";
 
 export interface ContractCore {
     type: ContractType;

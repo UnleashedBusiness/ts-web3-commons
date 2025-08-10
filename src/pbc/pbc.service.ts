@@ -1,11 +1,15 @@
-import {NamedTypeSpec} from "@partisiablockchain/abi-client/target/main/types/Abi.js";
 import type {ChainDefinition} from "./pbc.chains.js";
-import {AbiParser, FnRpcBuilder, type ScValue, StateReader} from "@partisiablockchain/abi-client";
+import {
+    AbiParser,
+    type ScValue,
+    StateReader,
+    NamedTypeSpec,
+    RpcContractBuilder,
+} from '@partisiablockchain/abi-client';
 import {ShardedClient} from "./client/sharded-client.js";
 import type {DefaultContractSerialization} from "./dto/contract-data.dto.js";
 import type {ConnectedWalletInterface} from "./wallet-connection/connected-wallet.interface.js";
 import {TransactionClient} from "./client/transaction-client.js";
-import type {FailureCause} from "./dto/transaction-data.dto.js";
 import type {PBCCallDelegate} from "./pbc.types.js";
 import {Buffer} from "buffer";
 import {AvlTreeReader, type AvlTreeReaderBuilder} from "./utils/avl-tree.utils.js";
@@ -20,13 +24,13 @@ export class PartisiaBlockchainService {
         );
     }
 
-    public async callMulti(chainDefinition: ChainDefinition, contractAddress: string, views: ((state: Record<string, ScValue> | undefined, trees: Record<number, AvlTreeReaderBuilder>, namedTypes: Record<string, NamedTypeSpec>) => Promise<void>)[], loadState:boolean, loadAvlTreeIndexes: number[] = []): Promise<void> {
+    public async callMulti(chainDefinition: ChainDefinition, contractAddress: string, views: ((state: Record<string, ScValue> | undefined, trees: Record<number, AvlTreeReaderBuilder>, namedTypes: Record<string, NamedTypeSpec & {typeIndex: number}>) => Promise<void>)[], loadState:boolean, loadAvlTreeIndexes: number[] = []): Promise<void> {
         await this.fetchContractState(chainDefinition, contractAddress, loadState, loadAvlTreeIndexes).then(
             args => Promise.all(views.map(x => x(...args)))
         );
     }
 
-    public async send(connectedWallet: ConnectedWalletInterface, contractAddress: string, methodName: string, methodCallBuilder: (builder: FnRpcBuilder) => Buffer, gasCost: number): Promise<string> {
+    public async send(connectedWallet: ConnectedWalletInterface, contractAddress: string, methodName: string, methodCallBuilder: (builder: RpcContractBuilder) => Buffer, gasCost: number): Promise<string> {
         if (connectedWallet === undefined || connectedWallet.chain === undefined) {
             throw new Error("connected wallet must be provided for execution of transactions!");
         }
@@ -39,9 +43,12 @@ export class PartisiaBlockchainService {
 
         const transactionClient = new TransactionClient(client, connectedWallet);
         let data = await client.getContractData<DefaultContractSerialization>(contractAddress, false, false);
+        if (data.code !== 200 || !data.data) {
+            throw new Error(`Failed to fetch contract abi for ${contractAddress}! Code: ${data.code}, Data: ${data.data}`);
+        }
 
-        let contract_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
-        const methodCallDataBuilder = new FnRpcBuilder(methodName, contract_abi.contract);
+        let contract_abi = new AbiParser(Buffer.from(data.data.abi, 'base64')).parseAbi();
+        const methodCallDataBuilder = new RpcContractBuilder(contract_abi.contract(), methodName);
 
         const transactionResult = await transactionClient.sendTransactionAndWait(
             contractAddress,
@@ -51,66 +58,76 @@ export class PartisiaBlockchainService {
 
         // @ts-ignore
         const transaction = await client.getExecutedTransaction(transactionResult['shard'], transactionResult.transactionHash);
-        let failureReason: FailureCause | undefined = undefined;
-        if (transaction === undefined) {
-            failureReason = {
-                errorMessage: `Transaction ${transactionResult.transactionHash} was not found after execution!`,
-                stackTrace: ""
-            };
-        } else if (!transaction.executionSucceeded) {
-            failureReason = transaction.failureCause;
+        if (transaction.code !== 200 || !transaction.data) {
+            throw new Error(`Failed to fetch transaction ${transactionResult.transactionHash}! Code: ${transaction.code}, Data: ${transaction.data}`);
         }
 
-        if (failureReason === undefined) {
-            let event = transaction!.events.pop();
-            while (event !== undefined && failureReason === undefined) {
-                const eventTxn = await client.getExecutedTransaction(event['destinationShard'], event.identifier);
-                if (eventTxn === undefined) {
-                    failureReason = {
-                        errorMessage: `Event ${event.identifier} was not found after execution!`,
-                        stackTrace: ""
-                    };
-                } else if (!eventTxn.executionSucceeded) {
-                    failureReason = eventTxn.failureCause;
-                }
+        if (!transaction.data.executionSucceeded) {
+            throw new Error(`Failed to execute transaction ${transactionResult.transactionHash}! Cause: ${transaction.data.failureCause}`);
+        }
 
-                event = eventTxn!.events.pop()
+        let event = transaction.data.events.pop();
+        while (event !== undefined) {
+            // FIX properly
+            const eventTxn = await client.getExecutedTransaction(event['destinationShard'], event.identifier);
+            if (eventTxn.code !== 200 || !eventTxn.data) {
+                throw new Error(`Failed to fetch event ${event.identifier}! Code: ${eventTxn.code}, Data: ${eventTxn.data}`);
             }
-        }
 
-        if (failureReason !== undefined) {
-            throw new Error(`Transaction failed! Hash ${transactionResult.transactionHash}, Reason ${failureReason!.errorMessage}, ${failureReason!.stackTrace}`);
+            if (!eventTxn.data.executionSucceeded) {
+                throw new Error(`Failed to execute event ${eventTxn.data.identifier}! Cause: ${eventTxn.data.failureCause}`);
+            }
+
+            event = eventTxn.data.events.pop()
         }
 
         return transactionResult.transactionHash;
     }
 
-    private async fetchContractState(chainDefinition: ChainDefinition, contractAddress: string, loadState: boolean, loadAvlTreeIndexes: number[] = []): Promise<[Record<string, ScValue> | undefined, Record<number, AvlTreeReaderBuilder>, any]> {
+    private async fetchContractState(chainDefinition: ChainDefinition, contractAddress: string, loadState: boolean, loadAvlTreeIndexes: number[] = []): Promise<[Record<string, ScValue> | undefined, Record<number, AvlTreeReaderBuilder>, Record<string, NamedTypeSpec & {typeIndex: number}>]> {
         const client = new ShardedClient(
             chainDefinition.rpcList[0],
             chainDefinition.shards,
         );
 
         let data = await client.getContractData<string>(contractAddress, false, false);
-        let state_abi = new AbiParser(Buffer.from(data!.abi, 'base64')).parseAbi();
-
-        let state = undefined;
-        let namedTypes: any = {};
-        if (loadState) {
-            const stateString = await client.getContractStateTraverse(contractAddress);
-            let reader = new StateReader(Buffer.from(stateString!.data, "base64"), state_abi.contract);
-            state = reader.readState();
+        if (data.code !== 200 || !data.data) {
+          throw new Error(`Failed to fetch contract abi for ${contractAddress}! Code: ${data.code}, Data: ${data.data}`);
         }
 
-        for (let type of state_abi.contract.namedTypes) {
-            namedTypes[type.name] = type;
+        let state_abi = new AbiParser(Buffer.from(data.data.abi, 'base64')).parseAbi();
+
+        let state = undefined;
+        let namedTypes: Record<string, NamedTypeSpec & {typeIndex: number}> = {};
+        if (loadState) {
+            if (data.data.type === "SYSTEM") {
+                let stateData = await client.getContractData<string>(contractAddress, true, false);
+                if (stateData.code !== 200 || !stateData.data) {
+                    throw new Error(`Failed to fetch contract state for ${contractAddress}! Code: ${stateData.code}, Data: ${stateData.data}`);
+                }
+
+                let reader = StateReader.create(Buffer.from(stateData.data.serializedContract, "base64"), state_abi.contract());
+                state = reader.readState();
+            } else {
+                const stateString = await client.getContractStateTraverse(contractAddress);
+                if (stateString.code !== 200 || !stateString.data) {
+                    throw new Error(`Failed to fetch contract state for ${contractAddress}! Code: ${stateString.code}, Data: ${stateString.data}`);
+                }
+
+                let reader = StateReader.create(Buffer.from(stateString.data.data, "base64"), state_abi.contract());
+                state = reader.readState();
+            }
+        }
+
+        for (let [typeIndex, type] of state_abi.contract().namedTypes.entries()) {
+            namedTypes[type.name] = {typeIndex, ...type};
         }
 
         let loadedTrees: Record<number, AvlTreeReaderBuilder> = {};
         for (let treeId of loadAvlTreeIndexes) {
             loadedTrees[treeId] = (isNamedValue, keyType, valueType, keyConverter, valueConverter) => {
                 return new AvlTreeReader(
-                    chainDefinition, contractAddress, state_abi.contract, treeId, isNamedValue, keyType, valueType, keyConverter, valueConverter
+                    chainDefinition, contractAddress, state_abi.contract(), treeId, isNamedValue, keyType, valueType, keyConverter, valueConverter
                 );
             }
         }

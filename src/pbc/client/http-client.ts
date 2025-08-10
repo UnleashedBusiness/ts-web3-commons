@@ -1,4 +1,4 @@
-import {BaseClient} from "./base-client.js";
+import { BaseClient, type ClientResponse } from './base-client.js';
 import type {ContractCore, ContractData} from "../dto/contract-data.dto.js";
 import type {AccountData} from "../dto/account-data.dto.js";
 import type {ExecutedTransactionDto} from "../dto/transaction-data.dto.js";
@@ -16,14 +16,13 @@ export class HttpClient extends BaseClient {
         address: string,
         withState = true,
         withTrees: boolean = false
-    ): Promise<ContractCore | ContractData<T> | undefined> {
-        const query = "?stateOutput="
-            + (withState ? (withTrees ? "DEFAULT" : "BINARY") : "NONE");
-
-        return this.getRequest(this.host + "/blockchain/contracts/" + address + query);
+    ): Promise<ClientResponse<ContractCore | ContractData<T>>> {
+        return this.getRequest(this.host + "/blockchain/contracts/" + address, {
+          stateOutput: (withState ? (withTrees ? "DEFAULT" : "BINARY") : "NONE")
+        });
     }
 
-    public getContractStateTraverse(address: string): Promise<{ data: string } | undefined> {
+    public getContractStateTraverse(address: string): Promise<ClientResponse<{ data: string }>> {
         return this.postRequest(this.host + "/blockchain/contracts/" + address, {
             "path": [
                 {"type": "field", "name": "state"}
@@ -31,11 +30,11 @@ export class HttpClient extends BaseClient {
         });
     }
 
-    public getAccountData(address: string): Promise<AccountData | undefined> {
+    public getAccountData(address: string): Promise<ClientResponse<AccountData>> {
         return this.getRequest<AccountData>(this.host + "/blockchain/account/" + address).then(
-            (response?: AccountData) => {
-                if (response != null) {
-                    response.address = address;
+            response => {
+                if (response.data != null) {
+                    response.data.address = address;
                 }
                 return response;
             }
@@ -45,8 +44,9 @@ export class HttpClient extends BaseClient {
     public getExecutedTransaction(
         identifier: string,
         requireFinal = true
-    ): Promise<ExecutedTransactionDto | undefined> {
-        const query = "?requireFinal=" + requireFinal;
-        return this.getRequest(this.host + "/blockchain/transaction/" + identifier + query);
+    ): Promise<ClientResponse<ExecutedTransactionDto>> {
+        return this.getRequest(this.host + "/blockchain/transaction/" + identifier, {
+          requireFinal: requireFinal
+        });
     }
 }

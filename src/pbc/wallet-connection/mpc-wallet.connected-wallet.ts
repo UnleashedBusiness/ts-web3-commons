@@ -72,16 +72,19 @@ export class MpcWalletConnectedWallet implements ConnectedWalletInterface {
     }
 
     public async signAndSendTransaction(payload: TransactionPayload<Rpc>, cost: string | number | undefined = 0): Promise<ShardPutTransactionResponse> {
-        return this._shardedClient!.getAccountData(this.address).then(async (accountData: any) => {
-            if (accountData == null) {
+        return this._shardedClient!.getAccountData(this.address).then(async (accountData) => {
+            if (accountData?.data == null) {
                 throw new Error("Account data was null");
+            }
+            if (accountData.code !== 200) {
+                throw new Error(`Account data returned bad response code: ${accountData.code}`);
             }
             // Account data was fetched, build and serialize the transaction
             // data.
             const serializedTx = this.transactionSerializer.serialize(
                 {
                     cost: String(cost),
-                    nonce: accountData.nonce,
+                    nonce: accountData.data.nonce,
                     validTo: String(Date.now() + TransactionClient.TRANSACTION_TTL),
                 },
                 {

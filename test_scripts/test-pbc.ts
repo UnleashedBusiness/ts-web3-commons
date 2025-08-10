@@ -6,7 +6,7 @@ import {
     TransactionRunningHelperService, U128TypeSpec
 } from "../src/index.js";
 import {BigNumber} from "bignumber.js";
-import {BN} from "@partisiablockchain/abi-client";
+import { BN, type NamedTypeSpec } from '@partisiablockchain/abi-client';
 import {CryptoUtils} from "@partisiablockchain/zk-client";
 import type {StructTypeSpec} from "@partisiablockchain/abi-client/target/main/types/StructTypeSpec.js";
 
@@ -79,7 +79,7 @@ export class SignerContractInstance extends BasePBCSmartContractInstance<SignerC
 
 new Promise(async () => {
     const chain = PBCChain.TESTNET;
-    chain.rpcList[0] = "https://pbc-testnet.unleashed-business.com:8443";
+    chain.rpcList[0] = "https://pbc-testnet.unleashed-business.com";
     const privateKey = CryptoUtils.generateKeyPair();
     const address = CryptoUtils.privateKeyToAccountAddress(privateKey.getPrivate().toString(16));
     const executorWallet = new PrivateKeyConnectedWallet(
@@ -108,7 +108,7 @@ new Promise(async () => {
     console.log(await instance.callView(
         async (state, trees, namedTypes) => {
             console.log(state);
-            const tree = trees[1](true, U128TypeSpec, namedTypes['BridgeQueueElement'] as StructTypeSpec, keyRaw => keyRaw.asBN(), value => value.structValue().getFieldValue("timestamp")!.asBN().toString());
+            const tree = trees[1](true, U128TypeSpec, namedTypes['BridgeQueueElement'] as NamedTypeSpec as StructTypeSpec, keyRaw => keyRaw.asBN(), value => value.structValue().getFieldValue("timestamp")!.asBN().toString());
             return await tree.get(new AvlTreeBNKey(new BN.BN("256"), 16));
         },
         true,

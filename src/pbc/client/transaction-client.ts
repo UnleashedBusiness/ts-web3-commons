@@ -22,7 +22,7 @@ export class TransactionFailedError extends Error {
  * the UI.
  */
 export class TransactionClient {
-  public static readonly TRANSACTION_TTL: number = 60_000;
+  public static readonly TRANSACTION_TTL: number = 300_000;
   private static readonly DELAY_BETWEEN_RETRIES = 1_000;
 
   private static readonly MAX_TRIES = TransactionClient.TRANSACTION_TTL / this.DELAY_BETWEEN_RETRIES;
@@ -72,7 +72,7 @@ export class TransactionClient {
   ): Promise<void> => {
     let executedTransaction = await this.client.getExecutedTransaction(shard, identifier);
     
-    if (executedTransaction == null) {
+    if (executedTransaction.code !== 200 || !executedTransaction.data) {
       if (tryCount >= TransactionClient.MAX_TRIES) {
         throw new TransactionFailedError(
             'Transaction "' + identifier + '" not finalized at shard "' + shard + '"',
@@ -82,14 +82,14 @@ export class TransactionClient {
         await this.delay(TransactionClient.DELAY_BETWEEN_RETRIES);
         return await this.waitForTransaction(shard, identifier, originalTransaction, tryCount + 1);
       }
-    } else if (!executedTransaction.executionSucceeded) {
+    } else if (!executedTransaction.data.executionSucceeded) {
       throw new TransactionFailedError(
           'Transaction "' + identifier + '" failed at shard "' + shard + '"',
           originalTransaction
       );
     } else {
       await Promise.all(
-          executedTransaction.events.map((e) =>
+          executedTransaction.data.events.map((e) =>
               this.waitForTransaction(e.destinationShard, e.identifier, originalTransaction)
           )
       );

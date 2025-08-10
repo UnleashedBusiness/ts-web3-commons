@@ -5,7 +5,6 @@ export class PBCContractMultiCall<C extends BasePBCSmartContract> {
   private calls: PBCMultiCallDelegate[] = [];
   private trees: Set<number> = new Set<number>();
   private requireState: boolean = false;
-  private executed = false;
 
   constructor(
     private readonly contractInstance: BasePBCSmartContractInstance<C>,
@@ -26,19 +25,10 @@ export class PBCContractMultiCall<C extends BasePBCSmartContract> {
   }
 
   public async execute(): Promise<void> {
-    if (this.executed) {
-      throw new Error("Multi call already executed!");
-    }
-
-    let response = this.contractInstance.multiCall(
+    return this.contractInstance.multiCall(
       this.calls,
       this.requireState,
       Array.from(this.trees)
     );
-
-    this.calls = [];
-    this.executed = true;
-
-    return response;
   }
 }

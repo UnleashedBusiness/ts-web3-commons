@@ -5,7 +5,7 @@ import { TransactionSerializer } from '../utils/transaction.serializer.js';
 import { TransactionClient } from '../client/transaction-client.js';
 import { BigEndianByteOutput } from '@secata-public/bitmanipulation-ts';
 import { CryptoUtils } from '@partisiablockchain/zk-client';
-import type { ChainDefinition } from '../pbc.chains.js';
+import { type ChainDefinition, PBCChain } from '../pbc.chains.js';
 import type { KeyPairSigner } from './elliptic/interfaces.js';
 
 export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
@@ -50,7 +50,9 @@ export class PrivateKeyConnectedWallet implements ConnectedWalletInterface {
         );
         const hash = CryptoUtils.hashBuffers([
             serializedTx,
-            BigEndianByteOutput.serialize((out) => out.writeString('Partisia Blockchain Testnet')),
+            BigEndianByteOutput.serialize((out) => out.writeString(
+                this.chain.id === PBCChain.TESTNET.id ? "Partisia Blockchain Testnet" : "Partisia Blockchain"
+            )),
         ]);
         const signature = this.keyPair.sign(hash);
         const signatureBuffer = CryptoUtils.signatureToBuffer(signature);

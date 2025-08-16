@@ -67,8 +67,8 @@ export const PBCChain = {
         ["https://reader.partisiablockchain.com"],
         ["Shard0", "Shard1", "Shard2"],
         {
-            WASMDeploy: "",
-            ZKDeploy: "",
+            WASMDeploy: "0197a0e238e924025bad144aa0c4913e46308f9a4d",
+            ZKDeploy: "018bc1ccbb672b87710327713c97d43204905082cb",
         },
         "https://browser.partisiablockchain.com/"
     )
